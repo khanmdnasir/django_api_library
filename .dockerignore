@@ -1,0 +1,8 @@
+# These files will not be added to containers.
+.dockerignore
+docker-compose.yml
+.dbdata
+pgadmin_data
+# dockerignore different than gitignore **/* is the full wildcard match
+**/*Dockerfile*
+

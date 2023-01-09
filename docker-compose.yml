@@ -1,0 +1,68 @@
+version: '3.7'
+services:
+  pgdb:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  
+    volumes:
+      - .dbdata:/var/lib/postgresql
+    networks:
+      - db_network
+
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    restart: always
+
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@root.com
+      PGADMIN_DEFAULT_PASSWORD: root
+      # PGADMIN_LISTEN_PORT = 80
+    ports:
+      - "5012:80"
+    depends_on:
+      - pgdb
+    networks:
+      - db_network
+
+  backend:
+    build:
+      context: .
+    command: gunicorn main.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/backend/static
+    expose:
+      - 8000
+    depends_on:
+      - pgdb
+    networks:
+      - nginx_network
+      - db_network
+
+
+  nginx:
+    build: ./nginx
+    ports:
+      - 5011:80
+    volumes:
+      - static_volume:/backend/static
+    depends_on:
+      - backend
+    networks:
+      - nginx_network
+
+networks:
+  db_network:
+    driver: bridge
+  nginx_network:
+    driver: bridge
+volumes:
+  dbdata:
+  pgadmin_data:
+  static_volume:
