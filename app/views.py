@@ -1,13 +1,12 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from .serializers import DocumentSerializer
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
 from .models import AppSettings,DocumentModel
 from .serializers import AppSettingsSerializer
 from user.views import ExtendedDjangoModelPermissions
 from django.utils.decorators import decorator_from_middleware
 from app.middleware.app_settings_middleware import AppSettingsMiddleware
+from django.conf import settings
 # Create your views here.
 
 class AppSettingsApi(APIView):
@@ -44,6 +43,7 @@ class DocumentApi(APIView):
     @decorator_from_middleware(AppSettingsMiddleware)
     def post(self,request):
         try:
+            print('after middleware',settings.DEFAULT_FILE_STORAGE)
             links = []
             for f in request.data.getlist('files'):
                 try:

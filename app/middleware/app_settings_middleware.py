@@ -9,14 +9,13 @@ class AppSettingsMiddleware(object):
             self.get_response = get_response
 
     def __call__(self, request):
-        appSettings = AppSettings.objects.get()
-        print('app settings call',appSettings.debug)
         return self.get_response(request)
     def process_view(self, request, view_func, view_args, view_kwargs):
         try:
             appSettings = AppSettings.objects.get()
-            print('app settings',appSettings.debug)
-            settings.storage_used = appSettings.storage_used
+            print('before middleware',settings.DEFAULT_FILE_STORAGE)
+            if appSettings.storage_used == 'aws':
+                settings.DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
         except AttributeError:
             pass
         return None
