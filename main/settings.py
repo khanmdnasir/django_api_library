@@ -1,9 +1,9 @@
-
 from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
 from constance import config
+
 
 load_dotenv()
 
@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'constance',
     'user',
-    'app'
+    'appSettings',
+    'activityLog',
+
 ]
 
 MIDDLEWARE = [
@@ -141,28 +143,26 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR/'media'
 
-# STORAGE_USED = 'local'
-# DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-if config.SELECT_STORAGE == 'aws':
-    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-# elif STORAGE_USED == 'gcp':
-#     GS_ACCESS_KEY_ID = os.environ.get('GS_ACCESS_KEY_ID')
-#     GS_SECRET_ACCESS_KEY = os.environ.get('GS_SECRET_ACCESS_KEY')
-#     GS_STORAGE_BUCKET_NAME = os.environ.get('GS_STORAGE_BUCKET_NAME')
-#     DEFAULT_FILE_STORAGE = 'storages.backends.gs.GSBotoStorage'
-# else:
-#     pass
+
+# AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+# AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+# AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL = None
+# AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# GS_ACCESS_KEY_ID = os.environ.get('GS_ACCESS_KEY_ID')
+# GS_SECRET_ACCESS_KEY = os.environ.get('GS_SECRET_ACCESS_KEY')
+# GS_STORAGE_BUCKET_NAME = os.environ.get('GS_STORAGE_BUCKET_NAME')
+# DEFAULT_FILE_STORAGE = 'storages.backends.gs.GSBotoStorage'
+
 
 # Default primary key field type
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 
 #rest framework settings

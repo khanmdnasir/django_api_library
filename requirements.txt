@@ -20,3 +20,4 @@ django-storages
 boto3
 django-solo==1.1.1
 python-dotenv
+django-constance[redis]

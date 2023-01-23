@@ -10,6 +10,7 @@ from user.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('user.urls')),
-    path('api/', include('app.urls')),
+    path('api/', include('appSettings.urls')),
+    path('api/', include('activityLog.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) +static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

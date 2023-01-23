@@ -9,8 +9,11 @@ storage_choices = (
     ('gcp','gcp')
 )
 class AppSettings(SingletonModel):
+    debug = models.BooleanField(default=True)
     storage_used = models.CharField(max_length=50,choices=storage_choices,default='local')
     
 
 class DocumentModel(models.Model):
     file = models.FileField(upload_to='document/%Y/%m/%d')
+
+
