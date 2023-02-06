@@ -100,7 +100,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
     def list(self, request):
         users=User.objects.all().exclude(id=request.user.id).order_by('-id')
-        if self.request.query_params.get('limit') == '0':
+        if 'page' not in self.request.query_params:
             serializer=UserSerializer(users, many=True)
             return Response({'results':serializer.data})
         else:

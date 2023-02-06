@@ -1,6 +1,7 @@
 from .models import *
 from django.contrib.auth.models import Permission,Group
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import user_logged_in
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import exceptions,serializers
 
@@ -21,6 +22,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         if self.user:
             if self.user.is_active:
+                user_logged_in.send(sender=self.user.__class__, request=self.context['request'], user=self.user)
                 return data
             raise exceptions.AuthenticationFailed('Account is not activated')
         raise exceptions.AuthenticationFailed()
