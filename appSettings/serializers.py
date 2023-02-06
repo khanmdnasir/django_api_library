@@ -10,3 +10,4 @@ class AppSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppSettings
         fields = '__all__'
+

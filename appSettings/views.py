@@ -1,8 +1,9 @@
 from rest_framework.response import Response
+from rest_framework import viewsets
 from .serializers import DocumentSerializer
 from rest_framework.views import APIView
-from .models import AppSettings,DocumentModel
-from .serializers import AppSettingsSerializer
+from .models import *
+from .serializers import *
 from user.views import ExtendedDjangoModelPermissions
 from activityLog import signals
 # from django.utils.decorators import decorator_from_middleware
@@ -64,6 +65,8 @@ class DocumentApi(APIView):
         else:
             signals.activity_log_task.send(sender=request.user.__class__,user=request.user, credentials={'action_type': 'create','action_model': 'document_handling','action_object': instance.id}, request=request)
             return Response({"success": True,"data":links})
+
+
 
 
 
