@@ -14,14 +14,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 
-DEBUG = True
+DEBUG = os.environ['DEBUG_VALUE'] == 'TRUE'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [os.environ.get('HOSTS'),]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,9 +34,12 @@ INSTALLED_APPS = [
     'django_rest_passwordreset',
     'phonenumber_field',
     'constance',
+    'django_celery_beat',
+    'django_celery_results',
     'user',
     'appSettings',
     'activityLog',
+    'notification'
 
 ]
 
@@ -70,6 +74,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'main.wsgi.application'
+ASGI_APPLICATION = 'main.asgi.application'
+
 
 
 # Database
@@ -119,7 +125,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
 
@@ -134,6 +140,15 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 
 CONSTANCE_CONFIG = {
     'SELECT_STORAGE': ('local', 'select storage', 'storage_select'),
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.environ.get('HOSTS'), 6379)],
+        },
+    },
 }
 
 # Static files (CSS, JavaScript, Images)
@@ -211,12 +226,27 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-CONSTANCE_REDIS_CONNECTION = 'redis://localhost:6379/0'
+
+CONSTANCE_REDIS_CONNECTION = os.environ.get('REDIS_URL')
+
+CELERY_BROKER_URL = os.environ.get('REDIS_URL')
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SELERLIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Dhaka'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOWED_ORIGINS = [
 #     'https://localhost:3000',
 # ]
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5011']
+CSRF_TRUSTED_ORIGINS = [os.environ.get("FRONTEND_URL")]
 FILE_UPLOAD_PERMISSIONS=0O640
 AUTH_USER_MODEL = 'user.User'
+
+FRONTEND_URL=os.environ.get('FRONTEND_URL')
+APP_ENV = os.environ.get('APP_ENV')
+TWILIO_SID = os.environ.get('TWILIO_SID')
+TWILIO_TOKEN = os.environ.get('TWILIO_TOKEN')

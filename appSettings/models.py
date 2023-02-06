@@ -17,3 +17,7 @@ class DocumentModel(models.Model):
     file = models.FileField(upload_to='document/%Y/%m/%d')
 
 
+
+    
+
+
