@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
     'corsheaders',
     'rest_framework',
     'django_rest_passwordreset',
@@ -39,7 +40,8 @@ INSTALLED_APPS = [
     'user',
     'appSettings',
     'activityLog',
-    'notification'
+    'notification',
+    'payment',
 
 ]
 
@@ -250,3 +252,4 @@ FRONTEND_URL=os.environ.get('FRONTEND_URL')
 APP_ENV = os.environ.get('APP_ENV')
 TWILIO_SID = os.environ.get('TWILIO_SID')
 TWILIO_TOKEN = os.environ.get('TWILIO_TOKEN')
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')

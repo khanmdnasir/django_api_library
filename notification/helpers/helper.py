@@ -1,6 +1,6 @@
 from main import settings
 from twilio.rest import Client
-from django.core.mail import EmailMultiAlternatives
+
 
 client = Client(settings.TWILIO_SID, settings.TWILIO_TOKEN)
 
