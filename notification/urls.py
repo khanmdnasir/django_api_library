@@ -13,4 +13,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('send_sms/',SendSMSApi.as_view()),
     path('send_email/',SendEmailApi.as_view()),
+    path('send_notification/',SendNotificationApi.as_view()),
 ]

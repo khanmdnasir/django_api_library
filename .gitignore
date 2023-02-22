@@ -1,4 +1,7 @@
 venv
 static
+media
+.env
+celerybeat-schedule
 *.pyc
 backend.sh
