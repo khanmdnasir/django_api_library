@@ -29,9 +29,8 @@ def broadcast_notification(self, instance):
                         'type': 'send_notification',
                         'message': json.dumps(notification.message),
                     }))
-                if notification.notification_type == 'broadcast':
-                    self.delete()
-                    notification.delete()
+                # if notification.notification_type == 'broadcast':
+                #     notification.delete()
                 return 'Done'
             else:
                 print('Not Active')

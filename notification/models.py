@@ -48,7 +48,7 @@ def email_handler(sender, instance, created, **kwargs):
     # call group_send function directly to send notificatoions or you can create a dynamic task in celery beat
     if created:
         schedule, created = CrontabSchedule.objects.get_or_create(hour = instance.schedule_hour, minute = instance.schedule_minute, day_of_month = instance.schedule_day, month_of_year = instance.schedule_month)
-        PeriodicTask.objects.create(crontab=schedule, name="broadcast-email-"+str(instance.id), task="notification.tasks.schedule_email_send_task", args=json.dumps((instance.id,)))
+        PeriodicTask.objects.create(crontab=schedule, name="broadcast-email-"+str(instance.id), task="notification.tasks.schedule_mail_send_task", args=json.dumps((instance.id,)))
 
 
 

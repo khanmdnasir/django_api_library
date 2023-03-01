@@ -1,6 +1,13 @@
 from django.db import models
-
+from solo.models import SingletonModel
 # Create your models here.
+
+class EBLConfig(SingletonModel):
+    merchantId = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
+    testMerchantId = models.CharField(max_length=255)
+    testPassword = models.CharField(max_length=255)
+    testMode = models.BooleanField(default=True)
 
 class CurrencyModel(models.Model):
     prefix = models.CharField(max_length=10,blank=True,null=True)
