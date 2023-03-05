@@ -111,21 +111,33 @@ class PaymentGatewayViewSet(viewsets.ModelViewSet):
     
 
 class PaymentView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(selt,request):
         data = request.data
-        if(data['payment_gateway'] == 'stripe'):
-            result = stripe_payment_integration(data)
-            print(result)
-            return Response(status=status.HTTP_200_OK, 
-            data={'message': 'Success', 'data': {
-            'customer_id': result.customer_id, 'extra_msg': result.extra_msg}
-            }) 
+        if 'payment_gateway' in data:
+            if(data['payment_gateway'] == 'stripe'):
+                try:
+                    result = stripe_payment_integration(data)
+                    print(result)
+                except Exception as e:
+                    return Response({'success': False,'error': str(e)})
+                else:
+                    return Response({'success': True, 'data': {
+                    'customer_id': result['customer_id'], 'extra_msg': result['extra_msg']}
+                    }) 
+            elif(data['payment_gateway'] == 'ebl'):
+                try:
+                    redirect_url = EblPayment(data)
+                    print(redirect_url)
+                except Exception as e:
+                    return Response({'success':False,'error': str(e)})
+                else:
+                    return HttpResponseRedirect(redirect_url) 
+            else:
+                return Response({'success': False,'error': 'No payment gateway available'})
         else:
-            redirect_url = EblPayment(data)
-            print(redirect_url)
-            return HttpResponseRedirect(redirect_url) 
+            return Response({'success': False,'error': 'Payment gateway parameter required'})
             
         
 
@@ -138,7 +150,20 @@ class PaymentSubscriptionView(APIView):
         result = stripe_subscription_payment_integration(data)
         return Response(status=status.HTTP_200_OK, 
             data={'message': 'Success', 'data': {
-            'customer_id': result.customer_id, 'extra_msg': result.extra_msg}
+            'customer_id': result['customer_id'], 'extra_msg': result['extra_msg']}
         }) 
+    
+
+class StripeConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(selt,request):
+        try:
+            stripe_config = StripeConfig.objects.get().values('stripe_access_key','test_stripe_access_key','testMode')
+        except Exception as e:
+            print(str(e))
+            return Response({'success':False,'error': str(e)})
+        else:        
+            return Response({'success': True, 'data': stripe_config}) 
 
 

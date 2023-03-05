@@ -11,8 +11,9 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound  
 from django.db import IntegrityError, transaction
 from django.contrib.contenttypes.models import ContentType
-
+from activityLog import signals
 from rest_framework.permissions import DjangoModelPermissions
+
 class ExtendedDjangoModelPermissions(DjangoModelPermissions):
     perms_map = {
         'GET':['%(app_label)s.view_%(model_name)s'],
@@ -132,6 +133,7 @@ class UserViewSet(viewsets.ModelViewSet):
             print(e)
             return Response({"success": False,"error": list(serializer.errors.values())[0][0] })
         else:
+            signals.activity_log_task.send(sender=request.user.__class__,user=request.user, credentials={'action_type': 'create','action_model': 'user','action_object': user.id}, request=request)
             return Response({"success": True,"data":serializer.data})
     
     def partial_update(self, request, pk=None):

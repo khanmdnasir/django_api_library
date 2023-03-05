@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from .models import *
 
+class StripeconfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StripeConfig
+        fields = '__all__'
+
 class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
         model = CurrencyModel

@@ -9,6 +9,13 @@ class EBLConfig(SingletonModel):
     testPassword = models.CharField(max_length=255)
     testMode = models.BooleanField(default=True)
 
+class StripeConfig(SingletonModel):
+    stripe_api_key = models.CharField(max_length=500)
+    stripe_access_key = models.CharField(max_length=500)
+    test_stripe_api_key = models.CharField(max_length=500)
+    test_stripe_access_key = models.CharField(max_length=500)
+    testMode = models.BooleanField(default=True)
+
 class CurrencyModel(models.Model):
     prefix = models.CharField(max_length=10,blank=True,null=True)
     short_key = models.CharField(max_length=100,unique=True)
@@ -16,7 +23,6 @@ class CurrencyModel(models.Model):
     is_active = models.BooleanField(default=True)
     
     
-
 class PaymentGatewayModel(models.Model):
     name = models.CharField(max_length=255)
     currency = models.ForeignKey(CurrencyModel,on_delete=models.CASCADE)
