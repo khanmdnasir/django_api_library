@@ -3,5 +3,6 @@ from .models import *
 
 
 # Register your models here.
-admin.site.register(StripeConfig)
-admin.site.register(EBLConfig)
+admin.site.register(CurrencyModel)
+admin.site.register(PaymentGatewayModel)
+admin.site.register(OrderModel)

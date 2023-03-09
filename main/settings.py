@@ -250,6 +250,7 @@ AUTH_USER_MODEL = 'user.User'
 
 FRONTEND_URL=os.environ.get('FRONTEND_URL')
 APP_ENV = os.environ.get('APP_ENV')
+DOMAIN = os.environ.get('DOMAIN')
 TWILIO_SID = os.environ.get('TWILIO_SID')
 TWILIO_TOKEN = os.environ.get('TWILIO_TOKEN')
 

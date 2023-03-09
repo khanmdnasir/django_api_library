@@ -6,13 +6,13 @@ from .models import *
 from .serializers import *
 from user.views import ExtendedDjangoModelPermissions
 from django.http import HttpResponseRedirect
-
 from .utils.paymentGateway import *
 
 
 
 
 # Create your views here.
+
 
 class CurrencyViewset(viewsets.ModelViewSet):
     queryset=CurrencyModel.objects.all()
@@ -118,19 +118,26 @@ class PaymentView(APIView):
         if 'payment_gateway' in data:
             if(data['payment_gateway'] == 'stripe'):
                 try:
-                    result = stripe_payment_integration(data)
-                    print(result)
+                    object = StripePaymentGateway(data)
+                    object.generate_invoice()
+                    redirect_url = object.generate_redirect_url()
+                    # result = stripe_payment_integration(data)
+                    
                 except Exception as e:
+                    print(e)
                     return Response({'success': False,'error': str(e)})
                 else:
-                    return Response({'success': True, 'data': {
-                    'customer_id': result['customer_id'], 'extra_msg': result['extra_msg']}
-                    }) 
+                    print(redirect_url)
+                    return HttpResponseRedirect(redirect_url)
             elif(data['payment_gateway'] == 'ebl'):
                 try:
-                    redirect_url = EblPayment(data)
+                    object = EblPaymentGateway(data)
+                    object.generate_invoice()
+                    redirect_url = object.generate_redirect_url()
+                    # redirect_url = EblPayment(data)
                     print(redirect_url)
                 except Exception as e:
+                    print(e)
                     return Response({'success':False,'error': str(e)})
                 else:
                     return HttpResponseRedirect(redirect_url) 
@@ -146,24 +153,27 @@ class PaymentSubscriptionView(APIView):
 
     def post(selt,request):
         data = request.data
-        
-        result = stripe_subscription_payment_integration(data)
+        object = StripeSubscriptionPaymentGateway(data)
+        object.generate_invoice()
+        result = object.generate_redirect_url()
+        # result = stripe_subscription_payment_integration(data)
         return Response(status=status.HTTP_200_OK, 
             data={'message': 'Success', 'data': {
             'customer_id': result['customer_id'], 'extra_msg': result['extra_msg']}
         }) 
     
+class PaymentReceiveView(APIView):
+    permission_classes = [AllowAny]
 
-class StripeConfigView(APIView):
-    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        data = self.request.query_params
+        order = OrderModel.objects.get(id=int(data.order_id))
+        
+        order.status = data.status
+        order.save()
+        return HttpResponseRedirect(data.return_url+data.status)
+    
 
-    def get(selt,request):
-        try:
-            stripe_config = StripeConfig.objects.get().values('stripe_access_key','test_stripe_access_key','testMode')
-        except Exception as e:
-            print(str(e))
-            return Response({'success':False,'error': str(e)})
-        else:        
-            return Response({'success': True, 'data': stripe_config}) 
+
 
 
