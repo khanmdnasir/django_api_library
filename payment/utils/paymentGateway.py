@@ -5,22 +5,6 @@ from main import settings
 
 class AbstractPaymentGateway(ABC):
 
-    @abstractmethod
-    def generate_invoice(self):
-        pass
-    
-    @abstractmethod
-    def generate_redirect_url(self):
-        pass
-
-def SetStripeConfig():    
-    stripe_config = PaymentGatewayModel.objects.filter(name='stripe').first()    
-    if(stripe_config.test_mode):
-        stripe.api_key = stripe_config.test_api_key
-    else:
-        stripe.api_key = stripe_config.api_key
-    
-class StripePaymentGateway(AbstractPaymentGateway):
     def __init__(self,data):
         self.data = data
         self.return_url = settings.DOMAIN+'/api/payment_receive?return_url='+data['return_url']+'&'
@@ -34,6 +18,19 @@ class StripePaymentGateway(AbstractPaymentGateway):
             return False
         else:
             return True
+    
+    @abstractmethod
+    def generate_redirect_url(self):
+        pass
+
+def SetStripeConfig():    
+    stripe_config = PaymentGatewayModel.objects.filter(name='stripe').first()    
+    if(stripe_config.test_mode):
+        stripe.api_key = stripe_config.test_api_key
+    else:
+        stripe.api_key = stripe_config.api_key
+    
+class StripePaymentGateway(AbstractPaymentGateway):
         
     def generate_redirect_url(self):
         try:
@@ -66,19 +63,6 @@ class StripePaymentGateway(AbstractPaymentGateway):
             return checkout_session.url
         
 class StripeSubscriptionPaymentGateway(AbstractPaymentGateway):
-    def __init__(self,data):
-        self.data = data
-        self.return_url = settings.DOMAIN+'/api/payment_receive?return_url='+data['return_url']+'&'
-
-    def generate_invoice(self):
-        try:            
-            order = OrderModel.objects.create(description=self.data['description'],amount=self.data['amount'],currency=self.data['currency'],customer_name=self.data['name'],customer_email=self.data['email'],customer_phone=self.data['phone'])
-            self.order = order
-        except Exception as e:
-            print(e)
-            return False
-        else:
-            return True
         
     def generate_redirect_url(self):
         try:
@@ -142,22 +126,7 @@ class StripeSubscriptionPaymentGateway(AbstractPaymentGateway):
 
 
 class EblPaymentGateway(AbstractPaymentGateway):
-    
-    def __init__(self,data):
-        self.data = data
-        self.return_url = settings.DOMAIN+'/api/payment_receive?return_url='+data['return_url']+'&'
-
-    def generate_invoice(self):
-        try:            
-            order = OrderModel.objects.create(description=self.data['description'],amount=self.data['amount'],currency=self.data['currency'],customer_name=self.data['name'],customer_email=self.data['email'],customer_phone=self.data['phone'])
-            self.order = order
-        except Exception as e:
-            print(e)
-            return False
-        else:
-            return True
             
-        
     
     def generate_redirect_url(self):
         

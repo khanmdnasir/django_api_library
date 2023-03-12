@@ -155,12 +155,9 @@ class PaymentSubscriptionView(APIView):
         data = request.data
         object = StripeSubscriptionPaymentGateway(data)
         object.generate_invoice()
-        result = object.generate_redirect_url()
+        redirect_url = object.generate_redirect_url()
         # result = stripe_subscription_payment_integration(data)
-        return Response(status=status.HTTP_200_OK, 
-            data={'message': 'Success', 'data': {
-            'customer_id': result['customer_id'], 'extra_msg': result['extra_msg']}
-        }) 
+        return HttpResponseRedirect(redirect_url) 
     
 class PaymentReceiveView(APIView):
     permission_classes = [AllowAny]
