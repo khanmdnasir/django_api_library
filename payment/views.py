@@ -6,7 +6,8 @@ from .models import *
 from .serializers import *
 from user.views import ExtendedDjangoModelPermissions
 from django.http import HttpResponseRedirect
-from .utils.paymentGateway import *
+from pydoc import locate
+# from .utils.paymentGateway import *
 
 
 
@@ -115,49 +116,23 @@ class PaymentView(APIView):
 
     def post(selt,request):
         data = request.data
-        if 'payment_gateway' in data:
-            if(data['payment_gateway'] == 'stripe'):
-                try:
-                    object = StripePaymentGateway(data)
-                    object.generate_invoice()
-                    redirect_url = object.generate_redirect_url()
-                    # result = stripe_payment_integration(data)
-                    
-                except Exception as e:
-                    print(e)
-                    return Response({'success': False,'error': str(e)})
-                else:
-                    print(redirect_url)
-                    return HttpResponseRedirect(redirect_url)
-            elif(data['payment_gateway'] == 'ebl'):
-                try:
-                    object = EblPaymentGateway(data)
-                    object.generate_invoice()
-                    redirect_url = object.generate_redirect_url()
-                    # redirect_url = EblPayment(data)
-                    print(redirect_url)
-                except Exception as e:
-                    print(e)
-                    return Response({'success':False,'error': str(e)})
-                else:
-                    return HttpResponseRedirect(redirect_url) 
-            else:
-                return Response({'success': False,'error': 'No payment gateway available'})
+        print(data['payment_gateway_class'])
+        try:
+            myClass = locate(str(data['payment_gateway_class']))
+            object = myClass(data)
+            object.generate_invoice()
+            redirect_url = object.generate_redirect_url()
+            # result = stripe_payment_integration(data)
+            
+        except Exception as e:
+            print(e)
+            return Response({'success': False,'error': str(e)})
         else:
-            return Response({'success': False,'error': 'Payment gateway parameter required'})
+            print(redirect_url)
+            return HttpResponseRedirect(redirect_url)
+            
             
         
-
-class PaymentSubscriptionView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(selt,request):
-        data = request.data
-        object = StripeSubscriptionPaymentGateway(data)
-        object.generate_invoice()
-        redirect_url = object.generate_redirect_url()
-        # result = stripe_subscription_payment_integration(data)
-        return HttpResponseRedirect(redirect_url) 
     
 class PaymentReceiveView(APIView):
     permission_classes = [AllowAny]

@@ -21,6 +21,7 @@ class PaymentGatewayModel(models.Model):
     test_api_key = models.CharField(max_length=255)
     test_access_key = models.CharField(max_length=255)
     test_mode = models.BooleanField(default=True)
+    payment_gateway_class = models.CharField(max_length=500)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

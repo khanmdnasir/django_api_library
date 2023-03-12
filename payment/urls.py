@@ -9,6 +9,5 @@ router.register('currency',CurrencyViewset)
 
 urlpatterns = [
     path('payment/',PaymentView.as_view()),
-    path('payment_receive/',PaymentReceiveView.as_view()),
-    path('payment-subscription/',PaymentSubscriptionView.as_view()),
+    path('payment_receive/',PaymentReceiveView.as_view())
 ]

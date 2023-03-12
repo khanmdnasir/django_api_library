@@ -53,7 +53,7 @@ class StripePaymentGateway(AbstractPaymentGateway):
                         'quantity': 1,
                     }
                 ],
-                mode='payment',
+                mode=self.data['mode'],
                 success_url= self.return_url+'status=success&order_id='+str(self.order.id),
                 cancel_url= self.return_url+'status=cancelled&order_id='+str(self.order.id)
             )
@@ -62,37 +62,37 @@ class StripePaymentGateway(AbstractPaymentGateway):
         else:
             return checkout_session.url
         
-class StripeSubscriptionPaymentGateway(AbstractPaymentGateway):
+# class StripeSubscriptionPaymentGateway(AbstractPaymentGateway):
         
-    def generate_redirect_url(self):
-        try:
-            SetStripeConfig()
-            product = stripe.Product.create(
-            name="order"+str(self.order.id),
+#     def generate_redirect_url(self):
+#         try:
+#             SetStripeConfig()
+#             product = stripe.Product.create(
+#             name="order"+str(self.order.id),
             
-            )
-            print('product',product)
-            price = stripe.Price.create(
-            product=product.id,
-            unit_amount=self.data['amount'],
-            currency=self.data['currency'],
-            )
-            print('price',price)
-            checkout_session = stripe.checkout.Session.create(
-                line_items=[
-                    {
-                        'price': price.id,
-                        'quantity': 1,
-                    }
-                ],
-                mode='subscription',
-                success_url= self.return_url+'status=success&order_id='+str(self.order.id),
-                cancel_url= self.return_url+'status=cancelled&order_id='+str(self.order.id)
-            )
-        except Exception as e:
-            raise Exception(str(e))
-        else:
-            return checkout_session.url
+#             )
+#             print('product',product)
+#             price = stripe.Price.create(
+#             product=product.id,
+#             unit_amount=self.data['amount'],
+#             currency=self.data['currency'],
+#             )
+#             print('price',price)
+#             checkout_session = stripe.checkout.Session.create(
+#                 line_items=[
+#                     {
+#                         'price': price.id,
+#                         'quantity': 1,
+#                     }
+#                 ],
+#                 mode='subscription',
+#                 success_url= self.return_url+'status=success&order_id='+str(self.order.id),
+#                 cancel_url= self.return_url+'status=cancelled&order_id='+str(self.order.id)
+#             )
+#         except Exception as e:
+#             raise Exception(str(e))
+#         else:
+#             return checkout_session.url
         
 # def stripe_payment_integration(data):
 #     try:
