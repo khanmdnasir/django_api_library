@@ -15,6 +15,7 @@ class AppSettings(SingletonModel):
 
 class DocumentModel(models.Model):
     file = models.FileField(upload_to='document/%Y/%m/%d')
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 
