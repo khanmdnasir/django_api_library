@@ -1,10 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework.serializers import get_serializer
+from rest_framework.serializers import Serializer
 from .models import *
 
 User = get_user_model()
-UserSerializer = get_serializer(User)
+
+
+class UserSerializer(Serializer):
+    class Meta:
+        model = User
+        fields = '__all__'
+
 
 class IssueTypesSerializer(serializers.ModelSerializer):
 

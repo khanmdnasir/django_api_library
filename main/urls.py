@@ -32,5 +32,6 @@ urlpatterns = [
     path('api/', include('activityLog.urls')),
     path('api/', include('notification.urls')),
     path('api/', include('payment.urls')),
+    path('api/', include('support.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) +static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
