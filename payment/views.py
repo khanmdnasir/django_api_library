@@ -1,17 +1,19 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,viewsets
-import stripe
-from rest_framework.permissions import AllowAny
-from main.settings import STRIPE_API_KEY
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .models import *
 from .serializers import *
 from user.views import ExtendedDjangoModelPermissions
+from django.http import HttpResponseRedirect
+from pydoc import locate
+# from .utils.paymentGateway import *
 
 
-stripe.api_key = STRIPE_API_KEY
+
 
 # Create your views here.
+
 
 class CurrencyViewset(viewsets.ModelViewSet):
     queryset=CurrencyModel.objects.all()
@@ -105,85 +107,45 @@ class PaymentGatewayViewSet(viewsets.ModelViewSet):
         else:
             return Response({"success": True, "data": "Deleted Successfully"})
 
-class test_payment(APIView):
-    permission_classes = [AllowAny]
-    def post(self,request):
-        test_payment_intent = stripe.PaymentIntent.create(
-        amount=1000, currency='usd', 
-        payment_method_types=['card'],
-        receipt_email='test@example.com')
-        return Response(status=status.HTTP_200_OK, data=test_payment_intent)
 
 
+    
 
-class StripePaymentView(APIView):
-    permission_classes = [AllowAny]
+class PaymentView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(selt,request):
         data = request.data
-        email = data['email']
-        payment_method_id = data['payment_method_id']
-        extra_msg = '' # add new variable to response message
-        # checking if customer with provided email already exists
-        customer_data = stripe.Customer.list(email=email).data   
-        
-        # if the array is empty it means the email has not been used yet  
-        if len(customer_data) == 0:
-            # creating customer
-            customer = stripe.Customer.create(
-            email=email, payment_method=payment_method_id)
+        print(data['payment_gateway_class'])
+        try:
+            myClass = locate(str(data['payment_gateway_class']))
+            object = myClass(data)
+            object.generate_invoice()
+            redirect_url = object.generate_redirect_url()
+            # result = stripe_payment_integration(data)
+            
+        except Exception as e:
+            print(e)
+            return Response({'success': False,'error': str(e)})
         else:
-            customer = customer_data[0]
-            extra_msg = "Customer already existed."
+            print(redirect_url)
+            return HttpResponseRedirect(redirect_url)
+            
+            
         
-        stripe.PaymentIntent.create(
-        customer=customer, 
-        payment_method=payment_method_id,  
-        currency=data['currency'], # you can provide any currency you want
-        amount=data['amount'],
-        confirm=True
-        ) 
-        return Response(status=status.HTTP_200_OK, 
-            data={'message': 'Success', 'data': {
-            'customer_id': customer.id, 'extra_msg': extra_msg}
-        }) 
-
-class StripePaymentSubscriptionView(APIView):
+    
+class PaymentReceiveView(APIView):
     permission_classes = [AllowAny]
 
-    def post(selt,request):
-        data = request.data
-        email = data['email']
-        payment_method_id = data['payment_method_id']
-        extra_msg = '' # add new variable to response message
-        # checking if customer with provided email already exists
-        customer_data = stripe.Customer.list(email=email).data   
+    def get(self,request):
+        data = self.request.query_params
+        order = OrderModel.objects.get(id=int(data.order_id))
         
-        # if the array is empty it means the email has not been used yet  
-        if len(customer_data) == 0:
-            # creating customer
-            customer = stripe.Customer.create(
-            email=email,
-            payment_method=payment_method_id,
-            invoice_settings={
-                'default_payment_method': payment_method_id
-            }
-            )
-        else:
-            customer = customer_data[0]
-            extra_msg = "Customer already existed."
-        
-        stripe.Subscription.create(
-            customer=customer,
-            items=[
-            {
-            'price': data['price_id'] #here paste your price id
-            }
-            ]
-        )
-        return Response(status=status.HTTP_200_OK, 
-            data={'message': 'Success', 'data': {
-            'customer_id': customer.id, 'extra_msg': extra_msg}
-        }) 
+        order.status = data.status
+        order.save()
+        return HttpResponseRedirect(data.return_url+data.status)
+    
+
+
 
 
