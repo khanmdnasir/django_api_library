@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'activityLog',
     'notification',
     'payment',
+    'support'
 
 ]
 
