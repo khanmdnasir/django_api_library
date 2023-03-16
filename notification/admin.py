@@ -5,4 +5,5 @@ from .models import *
 admin.site.register(SMSConfigModel)
 admin.site.register(SMSScheduleModel)
 admin.site.register(EmailScheduleModel)
+admin.site.register(NotificationSubsribe)
 admin.site.register(NotificationModel)

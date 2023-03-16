@@ -24,13 +24,25 @@ def broadcast_notification(self, instance):
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(channel_layer.group_send(
-                    "notification_"+notification.id,
+                    "notification_"+notification.subscription.name,
                     {
                         'type': 'send_notification',
                         'message': json.dumps(notification.message),
                     }))
+                if notification.subscription.send_to_all == True:
+                    users = User.objects.all()
+                else:
+                    users = notification.subscription.receiver
+                
+                if len(users) > 0:
+                    for user in users:
+                        user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
+                        user_notification_read.total_notification += 1
+                        user_notification_read.save()
+
                 if notification.notification_type == 'broadcast':
                     notification.delete()
+
                 return 'Done'
             else:
                 print('Not Active')
@@ -69,13 +81,25 @@ def non_schedule_notification(self,message,users):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(channel_layer.group_send(
-                "notification_"+notification.id,
+                "notification_"+notification.subscription.name,
                 {
                     'type': 'send_notification',
                     'message': json.dumps(notification.message),
                 }))
             notification.sent = True
             notification.save()
+
+            if notification.subscription.send_to_all == True:
+                users = User.objects.all()
+            else:
+                users = notification.subscription.receiver
+            
+            if len(users) > 0:
+                for user in users:
+                    user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
+                    user_notification_read.total_notification += 1
+                    user_notification_read.save()
+
             return 'Done'
 
         else:

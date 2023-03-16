@@ -56,6 +56,54 @@ class SMSConfigViewSet(viewsets.ModelViewSet):
             return Response({"success": True, "data": "Deleted Successfully"})
 
 
+class NotificationSubscribeViewSet(viewsets.ModelViewSet):
+    queryset = NotificationSubsribe.objects.all()
+    serializer_class = NotificationSubscribeSerializer
+    permission_classes = [ExtendedDjangoModelPermissions]
+
+        
+    def list(self, request):
+        instance=NotificationSubsribe.objects.all().order_by('-id')      
+        serializer=NotificationSubscribeSerializer(instance, many=True)
+        return Response({'results':serializer.data})
+        
+    def create(self, request):
+        try:            
+            data=request.data
+            data['created_by'] = request.user.id
+            serializer = NotificationSubscribeSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        except Exception as e:
+            print(e)
+            return Response({"success": False,"error": list(serializer.errors.values())[0][0] })
+        else:
+            return Response({"success": True,"data":serializer.data})
+    
+    def partial_update(self, request, pk=None):
+        try:
+            data=request.data
+            data['updated_by'] = request.user.id
+            instance = NotificationSubsribe.objects.get(id=pk)
+            serializer = NotificationSubscribeSerializer(instance=instance, data=data,partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            
+        except Exception as e:
+            print(str(e))
+            return Response({"success": False,"error": list(serializer.errors.values())[0][0] })
+        else:
+            return Response({"success": True,"data":serializer.data})
+        
+    def destroy(self, request, pk):
+        try:
+            instance = NotificationSubsribe.objects.get(id=pk)
+            instance.delete()
+        except Exception as e:
+            return Response({"success": False, "error": "Delete unsuccesful"})
+        else:
+            return Response({"success": True, "data": "Deleted Successfully"})
+        
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = NotificationModel.objects.all()
     serializer_class = NotificationSerializer
@@ -70,6 +118,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def create(self, request):
         try:            
             data=request.data
+            data['created_by'] = request.user.id
             serializer = NotificationSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -82,6 +131,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, pk=None):
         try:
             data=request.data
+            data['updated_by'] = request.user.id
             instance = NotificationModel.objects.get(id=pk)
             serializer = NotificationSerializer(instance=instance, data=data,partial=True)
             serializer.is_valid(raise_exception=True)
@@ -196,17 +246,54 @@ class EmailScheduleViewSet(viewsets.ModelViewSet):
 
 
         
-class UserNotificationApi(APIView):
+class NotificationSubscriptionApi(APIView):
     permission_classes = [IsAuthenticated]
-    def post(self,request):
+    def get(self,request):
         try:
-            instance=NotificationModel.objects.filter(receiver__contains=request.user).order_by('-id',send_to_all=True)    
+            subscirption = NotificationSubsribe.objects.get(id=request.data['subscription_id'])
+            instance=NotificationModel.objects.filter(subscription=subscirption).order_by('-id')    
             serializer=NotificationSerializer(instance, many=True)            
         except Exception as e:
             print(e)
             return Response({"success": False,"error": str(e) })
         else:            
             return Response({"success": True,"data":serializer.data})
+        
+class UserNotificationSubscriptionApi(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        try:
+            instance=NotificationSubsribe.objects.filter(receiver__contains=request.user,send_to_all=True).order_by('-id')    
+            serializer=NotificationSubscribeSerializer(instance, many=True)            
+        except Exception as e:
+            print(e)
+            return Response({"success": False,"error": str(e) })
+        else:            
+            return Response({"success": True,"data":serializer.data})
+        
+class UserNotificationReadApi(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        try:
+            instance=UserNotificationRead.objects.get(user=request.user)    
+            serializer=UserNotificationReadSerializer(instance, many=False)            
+        except Exception as e:
+            print(e)
+            return Response({"success": False,"error": str(e) })
+        else:            
+            return Response({"success": True,"data":serializer.data})
+        
+    def post(self,request):
+        try:
+            instance=UserNotificationRead.objects.get(user=request.user)    
+            instance.total_notification = 0     
+            instance.save()       
+        except Exception as e:
+            print(e)
+            return Response({"success": False,"error": str(e) })
+        else:            
+            return Response({"success": True})
         
 class SendSMSApi(APIView):
     permission_classes = [AllowAny]
@@ -291,5 +378,8 @@ class SendEmailAllApi(APIView):
         else:
             
             return Response({"success": True})
+        
+
+
 
 

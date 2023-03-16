@@ -6,9 +6,19 @@ class SMSConfigSerializer(serializers.ModelSerializer):
         model = SMSConfigModel
         fields = '__all__'
         
+class NotificationSubscribeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationSubsribe
+        fields = '__all__'
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationModel
+        fields = '__all__'
+
+class UserNotificationReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNotificationRead
         fields = '__all__'
 
 class SMSScheduleSerializer(serializers.ModelSerializer):
@@ -20,3 +30,5 @@ class EmailScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailScheduleModel
         fields = '__all__'
+
+

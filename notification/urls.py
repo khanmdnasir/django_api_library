@@ -5,6 +5,7 @@ from .views import *
 
 router = routers.DefaultRouter()
 router.register('sms_config', SMSConfigViewSet)
+router.register('notification_subscribe', NotificationSubscribeViewSet)
 router.register('notifications', NotificationViewSet)
 router.register('sms_schedule', SMSScheduleViewSet)
 router.register('email_schedule', EmailScheduleViewSet)
@@ -15,7 +16,10 @@ urlpatterns = [
     path('send_sms_all/',SendSMSAllApi.as_view()),
     path('send_email/',SendEmailApi.as_view()),
     path('send_email_all/',SendEmailAllApi.as_view()),
-    path('user_notifications/',UserNotificationApi.as_view()),
     path('send_notification/',SendNotificationApi.as_view()),
     path('send_notification_all/',SendNotificationAllApi.as_view()),
+    path('user_notification_subscription/',UserNotificationSubscriptionApi.as_view()),
+    path('subscription_notifications/',NotificationSubscriptionApi.as_view()),
+    path('user_notification_read/',UserNotificationReadApi.as_view()),
+    
 ]

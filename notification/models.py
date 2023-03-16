@@ -82,17 +82,35 @@ def email_handler_delete(sender, instance, created, **kwargs):
         for ptask in periodic_task:
             ptask.delete()
 
+class NotificationSubsribe(models.Model):
+    name = models.CharField(max_length=255,unique=True)
+    receiver = models.ManyToManyField(User)
+    send_to_all = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name="notification_subscription_created_by",blank=False,null=False)
+    updated_by = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name="notification_subscription_updated_by",blank=True,null=True)
+
+    def __str__(self):
+        return self.name
+
 class NotificationModel(models.Model):
     # user_sender = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True,related_name='user_sender')
-    receiver = models.ManyToManyField(User)
+    subscription = models.ForeignKey(NotificationSubsribe,on_delete=models.CASCADE)
     notification_type = models.CharField(max_length=255,choices=notification_type_choices)
     message = models.TextField()
     broadcast_month = models.CharField(max_length=255,default='*')
     broadcast_day = models.CharField(max_length=255,default='*')
     broadcast_hour = models.CharField(max_length=255,default='*')
     broadcast_minute = models.CharField(max_length=255,default='*')
-    send_to_all = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name="notification_created_by",blank=False,null=False)
+    updated_by = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name="notification_updated_by",blank=True,null=True)
+
+    def __str__(self):
+        return self.notification_type
 
 
 @receiver(post_save, sender=NotificationModel)
@@ -110,8 +128,13 @@ def notification_handler(sender, instance, created, **kwargs):
 
 
 @receiver(post_delete,sender=NotificationModel)
-def notification_handler_delete(sender, instance, created, **kwargs):
+def notification_handler_delete(sender, instance, **kwargs):
     periodic_task = PeriodicTask.objects.filter(name="broadcast-notification-"+str(instance.id))
     if len(periodic_task) > 0:
         for ptask in periodic_task:
             ptask.delete()
+
+
+class UserNotificationRead(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    total_notification = models.PositiveIntegerField(default=0)
