@@ -71,7 +71,7 @@ class TicketModel(models.Model):
 
 
     approved_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='ticket_approved_by', blank=False, null=False, default=None)
+        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='ticket_approved_by', blank=True, null=True, default=None)
 
     is_active = models.BooleanField(default=True)
 
@@ -89,7 +89,7 @@ class TicketModel(models.Model):
         )
 
     def __str__(self):
-        return self.title + "Status: " + ("open" if self.is_open else "close")
+        return self.title + ", Status: " + ("open" if self.is_open else "close")
 
 
 

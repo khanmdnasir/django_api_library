@@ -1,15 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework.serializers import Serializer
+from user.serializers import UserSerializer
 from .models import *
 
 User = get_user_model()
 
-
-class UserSerializer(Serializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        read_only_fields = ["is_superuser"]
+        fields = ['id', 'first_name','last_name','profile_image','is_staff','is_active','is_superuser']
+        extra_kwargs = {'password': {'write_only': True}}
 
 
 class IssueTypesSerializer(serializers.ModelSerializer):
@@ -24,7 +25,7 @@ class TicketSerializer(serializers.ModelSerializer):
     approved_by = UserSerializer(many=False, read_only=True)
     class Meta:
         model = TicketModel
-        fields = ('id', 'unique_id', 'title', 'issue_type', 'phone', 'email', 'is_active', 'description', 'is_open', 'status', 'is_registered_user', 'support_agent', 'support_agent_id', 'priority', 'due_date', 'approved_by', 'approved_by_id')
+        fields = ('id', 'unique_id', 'title', 'issue_type', 'due_date', 'phone', 'email', 'is_active', 'description', 'is_open', 'status', 'is_registered_user', 'support_agent', 'support_agent_id', 'priority', 'approved_by', 'approved_by_id')
 
         extra_kwargs = {
             'support_agent_id': {'source': 'support_agent', 'write_only': True},
