@@ -102,7 +102,7 @@ class TicketCommentsModel(models.Model):
 
     comment = models.CharField(max_length=256)
 
-    is_customer = models.BooleanField(default=False)
+    is_customer = models.BooleanField(default=True)
 
     author =  models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='ticket_comments_author')
@@ -118,7 +118,7 @@ class TicketCommentsModel(models.Model):
         ordering = ["-id"]
 
     def __str__(self):
-        return ("Ticket: " + self.ticket_id__title[:10] if len(self.ticket_id__title) > 10 else self.ticket_id__title) + ("commented by: " + self.comment[:10] if len(self.comment) > 10 else self.comment)
+        return str(("Ticket: " + self.ticket_id.title[:15] if len(self.ticket_id.title) > 15 else self.ticket_id.title) + ("commented by: " + self.comment[:15] if len(self.comment) > 15 else ", comment: " + self.comment))
 
 
 
@@ -159,4 +159,4 @@ class TicketLogsModel(models.Model):
         ordering = ["-id"]
 
     def __str__(self):
-        return ("Ticket: " + self.ticket_id__title[:10] if len(self.ticket_id__title) > 10 else self.ticket_id__title) + self.ticket_status
+        return ("Ticket: " + self.ticket_id.title[:10] if len(self.ticket_id.title) > 10 else self.ticket_id.title) + self.ticket_status

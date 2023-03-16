@@ -16,11 +16,22 @@ def ticket_log_signals(user, data, request, **kwargs):
         print(e)
 
 
-@receiver(signals.ticket_l_task)
+@receiver(signals.ticket_email_send_task)
 def email_send_signals(sender, receivers, data, template=None, **kwargs):
     try:
         pass
         # send email
+
+    except Exception as e:
+        # log the error
+        print(e)
+
+
+@receiver(signals.ticket_comments_task)
+def ticket_comments_signals(sender, receivers, data, template=None, **kwargs):
+    try:
+        pass
+        # send live comments
 
     except Exception as e:
         # log the error

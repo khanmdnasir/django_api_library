@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound
 from django.forms.models import model_to_dict
 from phonenumbers import format_number, PhoneNumberFormat
 import json
+from .customPermissionClasses import users_all_permission
 
 from support.customPermissionClasses import CustomPermissionsCheck
 
@@ -158,7 +159,6 @@ class TicketViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, pk):
         try:
             ticket = TicketModel.objects.filter(pk=pk, is_active = True).first()
-            print("ticket", ticket.support_agent)
             if ticket:
                 serializer = TicketSerializer(instance=ticket, many=False)
                 newData = serializer.data
@@ -203,7 +203,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             data['is_active'] = True
             data['status'] = "pending"
             data['priority'] = None
-            # data['due_date'] = None
+            data['due_date'] = None
 
 
             data['is_registered_user'] = request.user.is_authenticated
@@ -246,8 +246,6 @@ class TicketViewSet(viewsets.ModelViewSet):
                     previous_instance = model_to_dict(instance)
 
                     data = request.data
-                    user_id = request.user.id
-                    data['updated_by'] = user_id
 
                     data['support_agent_id'] = data['support_agent'] if 'support_agent' in data else (instance.support_agent.id if instance.support_agent != None else None)
 
@@ -305,6 +303,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 try:
                     with transaction.atomic():
                         instance.updated_by = request.user
+                        instance.is_open = False
                         instance.is_active = False
                         instance.save()
                         # signal for storing log and send email
@@ -317,3 +316,112 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": "Delete unsuccesful"})
         else:
             return Response({"success": True, "data": "Deleted Successfully"})
+
+
+
+
+class TicketCommentsViewSet(viewsets.ModelViewSet):
+    queryset = TicketModel.objects.all()
+    serializer_class = TicketCommentsSerializer
+    pagination_class = CustomPagination
+
+    def get_permissions(self):
+        if self.action in ['create']:
+            self.permission_classes = [IsAuthenticated, ]
+        return super().get_permissions()
+
+    def retrieve(self, request, pk):
+        try:
+            ticket_comment = TicketCommentsModel.objects.filter(pk=pk, is_active = True).first()
+
+            if ticket_comment:
+                serializer = self.get_serializer(instance=ticket_comment, many=False)
+                newData = serializer.data
+                return Response({"success": True, "result": newData})
+            else:
+                return Response({"success": False, "result": "Ticket Does Not Found"})
+        except Exception as e:
+            return Response({"success": False, "error": str(e)})
+
+    def list(self, request):
+        queryset = TicketCommentsModel.objects.filter(is_active=True).all()
+        ticket_id = request.query_params.get('ticket_id') if request.query_params else None
+
+        if ticket_id:
+            queryset = TicketCommentsModel.objects.filter(
+                is_active=True, ticket_id=ticket_id).all()
+
+            page = self.paginate_queryset(queryset)
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        elif self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({'results': serializer.data})
+
+        else:
+            page = self.paginate_queryset(queryset)
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+    def create(self, request):
+        try:
+            data = request.data
+
+            data['author_id'] = data['author']
+
+            serializer = self.get_serializer(data={**data})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            # signal to ticket_comments_task
+        except Exception as e:
+            print(str(e))
+            return Response({"success": False, "error": str(e)})
+        else:
+            newData = serializer.data
+
+            return Response({"success": True, "data": newData})
+
+    def partial_update(self, request, pk):
+        try:
+            instance = TicketCommentsModel.objects.filter(id=pk, is_active=True).first()
+            if instance:
+                try:
+                    data = request.data
+                    user_id = request.user.id
+                    data['updated_by'] = user_id
+
+                    serializer = self.get_serializer(
+                        instance=instance, data=data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                except Exception as e:
+                    print(str(e))
+                    return Response({"success": False, "error": list(serializer.errors.values())[0][0]})
+            else:
+                return Response({"success": False, "error": "Ticket Comments Does Not Exist!"})
+        except Exception as e:
+            return Response({"success": False, "error": str(e)})
+        else:
+            newData = serializer.data
+            return Response({"success": True, "data": newData})
+
+    def destroy(self, request, pk):
+        try:
+            instance = TicketCommentsModel.objects.filter(id=pk, is_active=True).first()
+            if instance:
+                try:
+                    with transaction.atomic():
+                        instance.updated_by = request.user
+                        instance.is_active = False
+                        instance.save()
+                except IntegrityError:
+                    transaction.set_rollback(True)
+            else:
+                return Response({"success": False, "error": "Ticket Comments Does Not Exist!"})
+        except Exception as e:
+            return Response({"success": False, "error": "Delete unsuccesful"})
+        else:
+            return Response({"success": True, "data": "Deleted Successfully"})
+
+

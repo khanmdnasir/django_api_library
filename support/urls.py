@@ -5,6 +5,7 @@ from rest_framework import routers
 router = routers.DefaultRouter()
 router.register('issue-types',IssueTypesViewSet),
 router.register('ticket',TicketViewSet),
+router.register('ticket-comments',TicketCommentsViewSet),
 urlpatterns=[
     path('', include(router.urls)),
     # path("email-test/",EmailTest.as_view(),name="email_test"),

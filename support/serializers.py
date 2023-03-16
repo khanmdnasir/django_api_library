@@ -37,7 +37,7 @@ class TicketCommentsSerializer(serializers.ModelSerializer):
     author = UserSerializer(many=False, read_only=True)
     class Meta:
         model = TicketCommentsModel
-        fields = ('id', 'unique_id', 'comment', 'is_customer', 'author', 'author_id', 'is_active', 'created_at', 'updated_at', 'updated_by')
+        fields = ('id', 'unique_id', 'ticket_id', 'comment', 'is_customer', 'author', 'author_id', 'is_active', 'created_at', 'updated_at', 'updated_by')
 
         extra_kwargs = {
             'author_id': {'source': 'author', 'write_only': True}
