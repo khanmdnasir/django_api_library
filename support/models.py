@@ -50,7 +50,7 @@ class TicketModel(models.Model):
         IssueTypesModel, on_delete=models.DO_NOTHING, related_name='ticket', null=False, blank=False)
     phone = PhoneNumberField(unique=True, null=True, blank=True)
     email = models.EmailField(
-        max_length=256, unique=True)
+        max_length=256, unique=False)
     description = models.TextField(
         max_length=512)
 
@@ -83,6 +83,7 @@ class TicketModel(models.Model):
             ("can_change_ticket_priority","Can Change Ticket Priority"),
             ("can_change_ticket_due_date","Can Change Ticket Due Date"),
             ("can_close_ticket","Can Close Ticket"),
+            ("can_open_closed_ticket","Can Open Closed Ticket"),
             ("can_delete_ticket","Can Delete Ticket"),
 
             ("can_reply_ticket_comments","Can Reply Ticket Comments"),
