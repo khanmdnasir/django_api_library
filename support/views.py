@@ -1,6 +1,5 @@
 from rest_framework.views import APIView
 from django.db import IntegrityError, transaction
-from urllib import request, response
 from .serializers import *
 from .models import *
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -11,8 +10,7 @@ from django.forms.models import model_to_dict
 from phonenumbers import format_number, PhoneNumberFormat
 import json
 from .customPermissionClasses import users_all_permission
-
-from support.customPermissionClasses import CustomPermissionsCheck
+from .signals import *
 
 # Create your views here.
 
@@ -224,8 +222,14 @@ class TicketViewSet(viewsets.ModelViewSet):
                 with transaction.atomic():
                     ticket = serializer.save()
                     ticket_id = ticket.id
+
                     # signal for storing log and send email
-                    print("create ticket",ticket_id)
+                    ticket_dict = model_to_dict(ticket)
+                    ticket_dict['action_types'] = 'created'
+                    ticket_dict['details'] = ''
+                    ticket_dict['support_agent'] = None
+                    ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+                    # print("create ticket",ticket_id)
 
             except IntegrityError:
                 transaction.set_rollback(True)
@@ -296,8 +300,14 @@ class TicketViewSet(viewsets.ModelViewSet):
                                     if 'support.can_close_ticket' not in users_permissions:
                                         return Response({"success": False, "error": "You don't have permission to change due_date"}) 
 
-                            # print('differences',differences)
-                            # differences_txt = json.dumps(differences) dict to json
+                            differences_txt = json.dumps(differences) # dict to json
+                                                # signal for storing log and send email
+                            # print('differences_txt',differences_txt)
+                            ticket_dict = model_to_dict(ticket)
+                            ticket_dict['action_types'] = 'updated'
+                            ticket_dict['details'] = differences_txt
+                            ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+                            # print("create ticket",ticket_id)
                             # signal for storing log and send email
 
 
@@ -325,7 +335,11 @@ class TicketViewSet(viewsets.ModelViewSet):
                         instance.is_active = False
                         instance.save()
                         # signal for storing log and send email
-                        print("delete ticket",instance.id)
+                        ticket_dict = model_to_dict(instance)
+                        ticket_dict['action_types'] = 'deleted'
+                        ticket_dict['details'] = ''
+                        ticket_log_task.send(sender=request.user.__class__, ticket=instance, data=ticket_dict, request=request)
+
                 except IntegrityError:
                     transaction.set_rollback(True)
             else:
@@ -360,6 +374,13 @@ class CloseOrOpenTicketApi(APIView):
 
                 ticket.is_open = True
                 ticket.save()
+
+                # send signal to store ticket log
+                ticket_dict = model_to_dict(ticket)
+                ticket_dict['action_types'] = 'open_ticket'
+                ticket_dict['details'] = "ticket opened by " + request.user.email
+                ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+
                 return Response({"success": True, "data": "Ticket has opened Successfully from closed."})
 
             elif not data['request_to_open']:
@@ -374,6 +395,14 @@ class CloseOrOpenTicketApi(APIView):
 
                 ticket.is_open = False
                 ticket.save()
+
+                # send signal to store ticket log
+                ticket_dict = model_to_dict(ticket)
+                ticket_dict['action_types'] = 'close_ticket'
+                ticket_dict['details'] = "ticket closed by " + request.user.email
+                ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+
+
                 return Response({"success": True, "data": "The ticket closed successfully"})
 
         except Exception as e:

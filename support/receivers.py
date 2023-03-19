@@ -4,12 +4,17 @@ from . import signals
 
 
 @receiver(signals.ticket_log_task)
-def ticket_log_signals(user, data, request, **kwargs):
+def ticket_log_signals(sender, data, ticket, request, **kwargs):
     try:
+        if data['action_types'] == 'created':
+            action_creators_email = ticket.email
+        else:
+            action_creators_email = request.user.email
+        ticket_log = TicketLogsModel.objects.create(ticket_id=ticket,action_types=data['action_types'], support_agent = ticket.support_agent,details=data['details'], ticket_status=data['status'], ticket_priority=data['priority'], action_creators_email= action_creators_email)
 
-        ticket_log = TicketLogsModel.objects.create(action_type=data['action_type'],action_model=data['action_model'],action_object=data['action_object'],action_user=user.email,action_agent_info='user_agent_info',)
+        ticket_log.save()
 
-        print("ticket_log",ticket_log)
+        # print("ticket_log",ticket_log)
 
     except Exception as e:
         # log the error

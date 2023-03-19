@@ -48,7 +48,7 @@ class TicketModel(models.Model):
     title = models.CharField(max_length=256)
     issue_type = models.ForeignKey(
         IssueTypesModel, on_delete=models.DO_NOTHING, related_name='ticket', null=False, blank=False)
-    phone = PhoneNumberField(unique=True, null=True, blank=True)
+    phone = PhoneNumberField(unique=False, null=True, blank=True)
     email = models.EmailField(
         max_length=256, unique=False)
     description = models.TextField(
@@ -119,19 +119,17 @@ class TicketCommentsModel(models.Model):
         ordering = ["-id"]
 
     def __str__(self):
-        return str(("Ticket: " + self.ticket_id.title[:15] if len(self.ticket_id.title) > 15 else self.ticket_id.title) + ("commented by: " + self.comment[:15] if len(self.comment) > 15 else ", comment: " + self.comment))
+        return str(("Ticket: " + self.ticket_id.title[:20] if len(self.ticket_id.title) > 20 else self.ticket_id.title) + ("commented by: " + self.comment[:20] if len(self.comment) > 20 else ", comment: " + self.comment))
 
 
 
 class TicketLogsModel(models.Model):
 
     actionTypes = [('created', 'created'),
-                ('agent_assinged', 'agent_assinged'),
-                ('agent_re-assigned', 'agent_re-assigned'),
-                ('changed_status', 'changed_status'),
-                ('changed_priority', 'changed_priority'),
-                ('changed_due_date', 'changed_due_date'),
-                ('close_ticket', 'close_ticket')
+                ('updated', 'updated'),
+                ('deleted', 'deleted'),
+                ('close_ticket', 'close_ticket'),
+                ('open_ticket', 'open_ticket'),
                 ]
 
     unique_id = models.UUIDField(
@@ -160,4 +158,4 @@ class TicketLogsModel(models.Model):
         ordering = ["-id"]
 
     def __str__(self):
-        return ("Ticket: " + self.ticket_id.title[:10] if len(self.ticket_id.title) > 10 else self.ticket_id.title) + self.ticket_status
+        return ("Ticket: " + self.ticket_id.title[:20] if len(self.ticket_id.title) > 20 else self.ticket_id.title) + ", Ticket Status: " + self.ticket_status
