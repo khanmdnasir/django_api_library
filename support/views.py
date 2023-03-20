@@ -44,6 +44,7 @@ class CustomPagination(pagination.PageNumberPagination):
         })
 paginator = CustomPagination()
 
+
 def compare_instances(instance1, instance2):
     # get the fields of the model
     fields = instance1.keys()
@@ -141,7 +142,6 @@ class IssueTypesViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": "Delete unsuccesful"})
         else:
             return Response({"success": True, "data": "Deleted Successfully"})
-
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -422,8 +422,6 @@ class CloseOrOpenTicketApi(APIView):
             return Response({"success": False, "error": str(e)})
 
 
-
-
 class TicketCommentsViewSet(viewsets.ModelViewSet):
     queryset = TicketModel.objects.all()
     serializer_class = TicketCommentsSerializer
@@ -529,3 +527,42 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
             return Response({"success": True, "data": "Deleted Successfully"})
 
 
+class TicketLogsViewSet(viewsets.ModelViewSet):
+    queryset = TicketLogsModel.objects.all()
+    serializer_class = TicketLogsSerializer
+    pagination_class = CustomPagination
+    http_method_names = ['get']
+    
+
+    def retrieve(self, request, pk):
+        try:
+            ticket_log = TicketLogsModel.objects.filter(pk=pk).first()
+
+            if ticket_log:
+                serializer = self.get_serializer(instance=ticket_log, many=False)
+                newData = serializer.data
+                return Response({"success": True, "result": newData})
+            else:
+                return Response({"success": False, "result": "Ticket Log Not Found"})
+        except Exception as e:
+            return Response({"success": False, "error": str(e)})
+
+    def list(self, request):
+        queryset = TicketLogsModel.objects.all()
+        ticket_id = request.query_params.get('ticket_id') if request.query_params else None
+
+        if ticket_id:
+            queryset = TicketLogsModel.objects.filter(ticket_id=ticket_id).all()
+
+            page = self.paginate_queryset(queryset)
+            serializer = self.get_serializer(queryset, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        elif self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({'results': serializer.data})
+
+        else:
+            page = self.paginate_queryset(queryset)
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
