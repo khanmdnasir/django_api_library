@@ -1,20 +1,18 @@
 from django.dispatch import receiver
-from .models import TicketLogsModel
 from . import signals
-
+from .tasks import storeTicketLog
+from celery.result import TimeoutError
 
 @receiver(signals.ticket_log_task)
-def ticket_log_signals(sender, data, ticket, request, **kwargs):
+def ticket_log_signals(sender, data, **kwargs):
     try:
-        if data['action_types'] == 'created':
-            action_creators_email = ticket.email
-        else:
-            action_creators_email = request.user.email
-        ticket_log = TicketLogsModel.objects.create(ticket_id=ticket,action_types=data['action_types'], support_agent = ticket.support_agent,details=data['details'], ticket_status=data['status'], ticket_priority=data['priority'], action_creators_email= action_creators_email)
-
-        ticket_log.save()
-
-        # print("ticket_log",ticket_log)
+        result = storeTicketLog.delay(data)
+        try:
+            status = result.get(timeout=10)
+            print("status",status)
+        except TimeoutError:
+            status = None
+            print("status",status)
 
     except Exception as e:
         # log the error

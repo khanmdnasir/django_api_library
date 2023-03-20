@@ -223,14 +223,6 @@ class TicketViewSet(viewsets.ModelViewSet):
                     ticket = serializer.save()
                     ticket_id = ticket.id
 
-                    # signal for storing log and send email
-                    ticket_dict = model_to_dict(ticket)
-                    ticket_dict['action_types'] = 'created'
-                    ticket_dict['details'] = ''
-                    ticket_dict['support_agent'] = None
-                    ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
-                    # print("create ticket",ticket_id)
-
             except IntegrityError:
                 transaction.set_rollback(True)
 
@@ -239,6 +231,18 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": str(e)})
         else:
             newData = serializer.data
+
+            try:
+                # signal for storing log and send email
+                ticket_dict = newData
+                ticket_dict['action_types'] = 'created'
+                ticket_dict['details'] = ''
+                ticket_dict['support_agent'] = None
+                ticket_dict['action_creators_email'] = ticket_dict['email']
+                
+                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+            except Exception as e:
+                print(str(e))
 
             return Response({"success": True, "data": newData})
 
@@ -301,15 +305,15 @@ class TicketViewSet(viewsets.ModelViewSet):
                                         return Response({"success": False, "error": "You don't have permission to change due_date"}) 
 
                             differences_txt = json.dumps(differences) # dict to json
-                                                # signal for storing log and send email
-                            # print('differences_txt',differences_txt)
-                            ticket_dict = model_to_dict(ticket)
-                            ticket_dict['action_types'] = 'updated'
-                            ticket_dict['details'] = differences_txt
-                            ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
-                            # print("create ticket",ticket_id)
+
                             # signal for storing log and send email
 
+                            ticket_dict = serializer.data
+                            ticket_dict['action_types'] = 'updated'
+                            ticket_dict['details'] = differences_txt
+                            ticket_dict['action_creators_email'] = request.user.email
+
+                            ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
                     except IntegrityError:
                         transaction.set_rollback(True)
@@ -334,11 +338,15 @@ class TicketViewSet(viewsets.ModelViewSet):
                         instance.is_open = False
                         instance.is_active = False
                         instance.save()
+
                         # signal for storing log and send email
-                        ticket_dict = model_to_dict(instance)
+                            
+                        ticket_dict = TicketSerializer(instance=instance, many=False).data
                         ticket_dict['action_types'] = 'deleted'
                         ticket_dict['details'] = ''
-                        ticket_log_task.send(sender=request.user.__class__, ticket=instance, data=ticket_dict, request=request)
+                        ticket_dict['action_creators_email'] = request.user.email
+
+                        ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
                 except IntegrityError:
                     transaction.set_rollback(True)
@@ -376,10 +384,13 @@ class CloseOrOpenTicketApi(APIView):
                 ticket.save()
 
                 # send signal to store ticket log
-                ticket_dict = model_to_dict(ticket)
+
+                ticket_dict = TicketSerializer(instance=ticket, many=False).data
                 ticket_dict['action_types'] = 'open_ticket'
                 ticket_dict['details'] = "ticket opened by " + request.user.email
-                ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+                ticket_dict['action_creators_email'] = request.user.email
+
+                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
                 return Response({"success": True, "data": "Ticket has opened Successfully from closed."})
 
@@ -397,11 +408,13 @@ class CloseOrOpenTicketApi(APIView):
                 ticket.save()
 
                 # send signal to store ticket log
-                ticket_dict = model_to_dict(ticket)
+
+                ticket_dict = TicketSerializer(instance=ticket, many=False).data
                 ticket_dict['action_types'] = 'close_ticket'
                 ticket_dict['details'] = "ticket closed by " + request.user.email
-                ticket_log_task.send(sender=request.user.__class__, ticket=ticket, data=ticket_dict, request=request)
+                ticket_dict['action_creators_email'] = request.user.email
 
+                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
                 return Response({"success": True, "data": "The ticket closed successfully"})
 
