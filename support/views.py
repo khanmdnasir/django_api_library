@@ -3,6 +3,8 @@ from django.db import IntegrityError, transaction
 from .serializers import *
 from .models import *
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from django.contrib.auth import get_user_model
+
 from rest_framework import viewsets, pagination, status, generics
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
@@ -11,9 +13,11 @@ from phonenumbers import format_number, PhoneNumberFormat
 import json
 from .customPermissionClasses import users_all_permission
 from .signals import *
-
+from .tasks import *
 # Create your views here.
 
+
+User = get_user_model()
 
 class CustomPagination(pagination.PageNumberPagination):
     page_query_param = 'page'
@@ -195,6 +199,8 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         try:
+
+            # return Response({"success":True})
             data = request.data
 
             data['is_open'] = True
@@ -241,6 +247,36 @@ class TicketViewSet(viewsets.ModelViewSet):
                 ticket_dict['action_creators_email'] = ticket_dict['email']
                 
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+            except Exception as e:
+                print(str(e))
+
+
+            try:
+                # send email to user
+                mailDataOfUser = {}
+                mailDataOfUser['subject'] = "Your Ticket Have been created"
+                mailDataOfUser['Content'] = "Your Ticket's Content"
+                mailDataOfUser['template_path'] = "email/template.html"
+                mailDataOfUser['users'] = [newData.email]
+
+                ticketEmailSendForUser.delay(maildata=mailDataOfUser)
+
+
+                # send email to admins
+
+                mailDataOfAdmins = {}
+                all_admin = User.objects.filter(groups__name="admin").values_list('email', flat=True)
+
+                mailDataOfAdmins['subject'] = "A Ticket Have been created"
+                mailDataOfAdmins['Content'] = "A Ticket's Content"
+                mailDataOfAdmins['template_path'] = "email/template.html"
+                mailDataOfAdmins['users'] = all_admin
+
+                ticketEmailSendForAdmin.delay(maildata=mailDataOfAdmins)
+
+
+
+                # ({'mail_subject': request.data['mail_subject'],'text': request.data['text'],'users': None})
             except Exception as e:
                 print(str(e))
 

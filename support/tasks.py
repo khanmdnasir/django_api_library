@@ -1,6 +1,9 @@
 from celery import shared_task
 from .models import TicketLogsModel, TicketModel
 from django.contrib.auth import get_user_model
+from main import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 User = get_user_model()
 
@@ -33,3 +36,78 @@ def storeTicketLog(self, data, **kwargs):
     except Exception as e:
         print("hello error", str(e))
         return False
+
+
+@shared_task(bind=True)
+def ticketEmailSendForUser(self, mailData):
+        
+        subject = mailData['subject']
+        text_content = mailData['content']   
+
+        # We can use email_template or content. Here we use content
+  
+        # email_template = render_to_string(mailData['template_path'], {'name': "name", 'content': "content"})   
+
+        html_content = f"<p>{text_content}</p>" 
+
+        try:
+            for u in mailData['users']:
+                email = EmailMultiAlternatives(
+                    subject, text_content, settings.HOST_EMAIL_ADDRESS, [u.email])
+                email.attach_alternative(html_content, "text/html")
+                # email.attach_file(invoice['file_path'])
+                email.send()
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+
+@shared_task(bind=True)
+def ticketEmailSendForAgent(self, mailData):
+        
+        subject = mailData['subject']
+        text_content = mailData['content']   
+
+        # We can use email_template or content. Here we use content
+  
+        # email_template = render_to_string(mailData['template_path'], {'name': "name", 'content': "content"})   
+
+        html_content = f"<p>{text_content}</p>" 
+
+        try:
+            for u in mailData['users']:
+                email = EmailMultiAlternatives(
+                    subject, text_content, settings.HOST_EMAIL_ADDRESS, [u.email])
+                email.attach_alternative(html_content, "text/html")
+                # email.attach_file(invoice['file_path'])
+                email.send()
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+
+@shared_task(bind=True)
+def ticketEmailSendForAdmin(self, mailData):
+        
+        subject = mailData['subject']
+        text_content = mailData['content']   
+
+        # We can use email_template or content. Here we use content
+  
+        # email_template = render_to_string(mailData['template_path'], {'name': "name", 'content': "content"})   
+
+        html_content = f"<p>{text_content}</p>" 
+
+        try:
+            for u in mailData['users']:
+                email = EmailMultiAlternatives(
+                    subject, text_content, settings.HOST_EMAIL_ADDRESS, [u.email])
+                email.attach_alternative(html_content, "text/html")
+                # email.attach_file(invoice['file_path'])
+                email.send()
+            return True
+        except Exception as e:
+            print(e)
+            return False

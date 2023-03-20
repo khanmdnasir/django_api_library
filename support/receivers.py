@@ -3,6 +3,7 @@ from . import signals
 from .tasks import storeTicketLog
 from celery.result import TimeoutError
 
+
 @receiver(signals.ticket_log_task)
 def ticket_log_signals(sender, data, **kwargs):
     try:
@@ -19,19 +20,19 @@ def ticket_log_signals(sender, data, **kwargs):
         print(e)
 
 
-@receiver(signals.ticket_email_send_task)
-def email_send_signals(sender, receivers, data, template=None, **kwargs):
-    try:
-        pass
-        # send email
+# @receiver(signals.ticket_email_send_task)
+# def email_send_signals(sender, receivers, data, template=None, **kwargs):
+#     try:
+#         pass
+#         # send email
 
-    except Exception as e:
-        # log the error
-        print(e)
+#     except Exception as e:
+#         # log the error
+#         print(e)
 
 
-@receiver(signals.ticket_comments_task)
-def ticket_comments_signals(sender, receivers, data, template=None, **kwargs):
+# @receiver(signals.ticket_comments_task)
+# def ticket_comments_signals(sender, receivers, data, template=None, **kwargs):
     try:
         pass
         # send live comments
