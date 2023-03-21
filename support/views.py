@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, transaction, DatabaseError
 from .serializers import *
 from .models import *
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -14,6 +14,7 @@ import json
 from .customPermissionClasses import users_all_permission
 from .signals import *
 from .tasks import *
+from .helper import *
 # Create your views here.
 
 
@@ -295,7 +296,6 @@ class TicketViewSet(viewsets.ModelViewSet):
                     try:
                         with transaction.atomic():
                             ticket = serializer.save()
-                            ticket_id = ticket.id
 
                             differences = compare_instances(previous_instance, model_to_dict(ticket))
                             
@@ -336,7 +336,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
                             differences_txt = json.dumps(differences) # dict to json
 
-                            # signal for storing log and send email
+                            # signal for storing log
 
                             ticket_dict = serializer.data
                             ticket_dict['action_types'] = 'updated'
@@ -345,8 +345,19 @@ class TicketViewSet(viewsets.ModelViewSet):
 
                             ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
-                    except IntegrityError:
-                        transaction.set_rollback(True)
+                            # sending email
+                            # raise
+
+                            try:
+                                email_sending_status = ticket_update_email(serializer.data, differences, request.user)
+                                print('email_sending_status',email_sending_status)
+                            except Exception as e:
+                                print("Sending email error: "+str(e))
+                    
+                    except IntegrityError as e:
+                        transaction.rollback()
+                        error_message = str(e)
+                        print('transaction error_message',error_message)
                 except Exception as e:
                     print(str(e))
                     return Response({"success": False, "error": list(serializer.errors.values())[0][0]})
