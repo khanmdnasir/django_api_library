@@ -248,31 +248,10 @@ class TicketViewSet(viewsets.ModelViewSet):
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
             except Exception as e:
                 print("signal for storing log"+str(e))
-            # send email to user
+
+            # send email
             try:
-                mailDataOfUser = {}
-                mailDataOfUser['subject'] = "Your Ticket Have been created"
-                mailDataOfUser['content'] = "Your Ticket's Content"
-                mailDataOfUser['template_path'] = "email/template.html"
-                mailDataOfUser['users'] = [newData['email']]
-                userResult = ticketEmailSend.delay(mailDataOfUser)
-                try:
-                    status = userResult.get(timeout=30)
-                except TimeoutError:
-                    status = None
-                # send email to admins
-                mailDataOfAdmins = {}
-                all_admin = User.objects.filter(groups__name="admin").values('email')
-                all_admins_email = [admin['email'] for admin in all_admin]
-                mailDataOfAdmins['subject'] = "A Ticket Have been created"
-                mailDataOfAdmins['content'] = "A Ticket's Content"
-                mailDataOfAdmins['template_path'] = "email/template.html"
-                mailDataOfAdmins['users'] = all_admins_email
-                adminResult = ticketEmailSend.delay(mailDataOfAdmins)
-                try:
-                    status = adminResult.get(timeout=30)
-                except TimeoutError:
-                    status = None
+                ticket_create_email(newData)
             except Exception as e:
                 print(str(e))
             return Response({"success": True, "data": newData})
@@ -433,6 +412,12 @@ class CloseOrOpenTicketApi(APIView):
 
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
+                # send email
+                try:
+                    ticket_open_or_close_email(ticket_dict)
+                except Exception as e:
+                    print("ticket open or close email send error: "+str(e))
+
                 return Response({"success": True, "data": "Ticket has opened Successfully from closed."})
 
             elif not data['request_to_open']:
@@ -456,6 +441,13 @@ class CloseOrOpenTicketApi(APIView):
                 ticket_dict['action_creators_email'] = request.user.email
 
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+
+
+                # send email
+                try:
+                    ticket_open_or_close_email(ticket_dict)
+                except Exception as e:
+                    print(str(e))
 
                 return Response({"success": True, "data": "The ticket closed successfully"})
 
@@ -513,10 +505,21 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
 
             data['author_id'] = data['author']
 
+            is_agent = User.objects.filter(id=request.user.id, groups__name="agent").first()
+            is_admin = User.objects.filter(id=request.user.id, groups__name="admin").first()
+            
+            data['is_customer'] = False if (is_agent or is_admin) else True
+
             serializer = self.get_serializer(data={**data})
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            # signal to ticket_comments_task
+
+            # send email to user/agent
+            try:
+                ticket_comment_email(serializer.data, request.user)
+            except Exception as e:
+                print("error in ticket comment email"+str(e))
+
         except Exception as e:
             print(str(e))
             return Response({"success": False, "error": str(e)})

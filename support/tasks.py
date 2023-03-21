@@ -1,6 +1,6 @@
 from celery import shared_task
 from .models import TicketModel
-from .serializers import TicketLogsSerializer 
+from .serializers import TicketLogsSerializer, TicketLogsModel
 from django.contrib.auth import get_user_model
 from main import settings
 from django.core.mail import EmailMultiAlternatives
@@ -22,16 +22,15 @@ def storeTicketLog(self, data, **kwargs):
 
         ticket_instance = TicketModel.objects.get(pk=data['id'])
         
-        ticket_log = TicketLogsSerializer(
-            data={"ticket_id":ticket_instance,
-            "action_types":data['action_types'], 
-            "support_agent":data['support_agent'],
-            "details":data['details'],
-            "ticket_status":data['status'],
-            "ticket_priority":data['priority'],
-            "action_creators_email":action_creators_email})
+        ticket_log = TicketLogsModel.objects.create(
+            ticket_id=ticket_instance,
+            action_types=data['action_types'], 
+            support_agent=data['support_agent'],
+            details=data['details'],
+            ticket_status=data['status'],
+            ticket_priority=data['priority'],
+            action_creators_email=action_creators_email)
         
-        ticket_log.is_valid(raise_exception=True)
         ticket_log.save()
 
         return True
