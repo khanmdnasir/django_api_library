@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 
-DEBUG = os.environ['DEBUG_VALUE'] == 'TRUE'
+DEBUG = os.environ['DEBUG'] == 'TRUE'
 
 ALLOWED_HOSTS = [os.environ.get('HOSTS'),]
 
@@ -37,12 +37,14 @@ INSTALLED_APPS = [
     'constance',
     'django_celery_beat',
     'django_celery_results',
+    'dbbackup',
+    'import_export',
     'user',
     'appSettings',
     'activityLog',
     'notification',
     'payment',
-    'import_export'
+    'menu_management',
 
 ]
 
@@ -161,19 +163,31 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR/'media'
 
+if os.environ['DEBUG'] != 'TRUE':
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-# AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-# AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-# AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-# AWS_S3_FILE_OVERWRITE = False
-# AWS_DEFAULT_ACL = None
-# AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # GS_ACCESS_KEY_ID = os.environ.get('GS_ACCESS_KEY_ID')
+    # GS_SECRET_ACCESS_KEY = os.environ.get('GS_SECRET_ACCESS_KEY')
+    # GS_STORAGE_BUCKET_NAME = os.environ.get('GS_STORAGE_BUCKET_NAME')
+    # DEFAULT_FILE_STORAGE = 'storages.backends.gs.GSBotoStorage'
 
-# GS_ACCESS_KEY_ID = os.environ.get('GS_ACCESS_KEY_ID')
-# GS_SECRET_ACCESS_KEY = os.environ.get('GS_SECRET_ACCESS_KEY')
-# GS_STORAGE_BUCKET_NAME = os.environ.get('GS_STORAGE_BUCKET_NAME')
-# DEFAULT_FILE_STORAGE = 'storages.backends.gs.GSBotoStorage'
+if os.environ['DEBUG'] == 'TRUE':
+    DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    DBBACKUP_STORAGE_OPTIONS = {'location': '/home/asl/Desktop/ASL Systems/ASL Framework/dbbackup'}
+else:
+    DBBACKUP_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    DBBACKUP_STORAGE_OPTIONS = {
+        'access_key': os.environ.get('AWS_ACCESS_KEY_ID'),
+        'secret_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        'bucket_name': os.environ.get('AWS_STORAGE_BUCKET_NAME'),
+        'default_acl': 'private',
+    }
 
 
 # Default primary key field type
@@ -250,7 +264,6 @@ FILE_UPLOAD_PERMISSIONS=0O640
 AUTH_USER_MODEL = 'user.User'
 
 FRONTEND_URL=os.environ.get('FRONTEND_URL')
-APP_ENV = os.environ.get('APP_ENV')
 DOMAIN = os.environ.get('DOMAIN')
 TWILIO_SID = os.environ.get('TWILIO_SID')
 TWILIO_TOKEN = os.environ.get('TWILIO_TOKEN')
