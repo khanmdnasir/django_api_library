@@ -237,49 +237,43 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": str(e)})
         else:
             newData = serializer.data
-
+            # signal for storing log and send email
             try:
-                # signal for storing log and send email
                 ticket_dict = newData
                 ticket_dict['action_types'] = 'created'
                 ticket_dict['details'] = ''
                 ticket_dict['support_agent'] = None
                 ticket_dict['action_creators_email'] = ticket_dict['email']
-                
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
             except Exception as e:
-                print(str(e))
-
-
+                print("signal for storing log"+str(e))
+            # send email to user
             try:
-                # send email to user
                 mailDataOfUser = {}
                 mailDataOfUser['subject'] = "Your Ticket Have been created"
-                mailDataOfUser['Content'] = "Your Ticket's Content"
+                mailDataOfUser['content'] = "Your Ticket's Content"
                 mailDataOfUser['template_path'] = "email/template.html"
-                mailDataOfUser['users'] = [newData.email]
-
-                ticketEmailSendForUser.delay(maildata=mailDataOfUser)
-
-
+                mailDataOfUser['users'] = [newData['email']]
+                userResult = ticketEmailSend.delay(mailDataOfUser)
+                try:
+                    status = userResult.get(timeout=30)
+                except TimeoutError:
+                    status = None
                 # send email to admins
-
                 mailDataOfAdmins = {}
-                all_admin = User.objects.filter(groups__name="admin").values_list('email', flat=True)
-
+                all_admin = User.objects.filter(groups__name="admin").values('email')
+                all_admins_email = [admin['email'] for admin in all_admin]
                 mailDataOfAdmins['subject'] = "A Ticket Have been created"
-                mailDataOfAdmins['Content'] = "A Ticket's Content"
+                mailDataOfAdmins['content'] = "A Ticket's Content"
                 mailDataOfAdmins['template_path'] = "email/template.html"
-                mailDataOfAdmins['users'] = all_admin
-
-                ticketEmailSendForAdmin.delay(maildata=mailDataOfAdmins)
-
-
-
-                # ({'mail_subject': request.data['mail_subject'],'text': request.data['text'],'users': None})
+                mailDataOfAdmins['users'] = all_admins_email
+                adminResult = ticketEmailSend.delay(mailDataOfAdmins)
+                try:
+                    status = adminResult.get(timeout=30)
+                except TimeoutError:
+                    status = None
             except Exception as e:
                 print(str(e))
-
             return Response({"success": True, "data": newData})
 
     def partial_update(self, request, pk):

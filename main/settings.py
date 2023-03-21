@@ -102,6 +102,8 @@ EMAIL_HOST = os.environ.get('EMAIL_HOST')
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = os.environ.get('EMAIL_PORT')
+HOST_EMAIL_ADDRESS = os.environ.get('HOST_EMAIL_ADDRESS')
+
 
 
 # Password validation
