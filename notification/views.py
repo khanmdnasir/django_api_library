@@ -284,7 +284,7 @@ class UserNotificationReadApi(APIView):
         else:            
             return Response({"success": True,"data":serializer.data})
         
-    def post(self,request):
+    def put(self,request):
         try:
             instance=UserNotificationRead.objects.get(user=request.user)    
             instance.total_notification = 0     

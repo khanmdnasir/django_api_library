@@ -13,7 +13,7 @@ class MenuViewSet(viewsets.ModelViewSet):
 
         
     def list(self, request):
-        instance=Menu.objects.all()     
+        instance=Menu.objects.all().order_by('serial')    
         serializer=MenuSerializer(instance, many=True)
         return Response({'results':serializer.data})
         
@@ -103,7 +103,7 @@ class SubMenuApi(APIView):
     def get(self,request):
         try:
             menu = Menu.objects.get(id=request.data['menu_id'])
-            instance=SubMenu.objects.filter(menu=menu)   
+            instance=SubMenu.objects.filter(menu=menu).order_by('serial')   
             serializer=SubMenuSerializer(instance, many=True)            
         except Exception as e:
             print(e)

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'notification',
     'payment',
     'menu_management',
+    'db_backup'
 
 ]
 
