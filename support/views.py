@@ -238,22 +238,33 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": str(e)})
         else:
             newData = serializer.data
-            # signal for storing log and send email
-            try:
-                ticket_dict = newData
-                ticket_dict['action_types'] = 'created'
-                ticket_dict['details'] = ''
-                ticket_dict['support_agent'] = None
-                ticket_dict['action_creators_email'] = ticket_dict['email']
-                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
-            except Exception as e:
-                print("signal for storing log"+str(e))
 
-            # send email
+
+            # sending data to websocket
             try:
-                ticket_create_email(newData)
+                sendTicketDataToWebSocket(newData, request.user)
+
             except Exception as e:
                 print(str(e))
+
+
+
+            # # signal for storing log and send email
+            # try:
+            #     ticket_dict = newData
+            #     ticket_dict['action_types'] = 'created'
+            #     ticket_dict['details'] = ''
+            #     ticket_dict['support_agent'] = None
+            #     ticket_dict['action_creators_email'] = ticket_dict['email']
+            #     ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+            # except Exception as e:
+            #     print("signal for storing log"+str(e))
+
+            # # send email
+            # try:
+            #     ticket_create_email(newData)
+            # except Exception as e:
+            #     print(str(e))
             return Response({"success": True, "data": newData})
 
     def partial_update(self, request, pk):

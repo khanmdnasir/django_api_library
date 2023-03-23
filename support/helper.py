@@ -1,4 +1,4 @@
-from .tasks import User, ticketEmailSend
+from .tasks import User, ticketEmailSend, sendTicketToWebSocket
 from .models import TicketModel
 from .serializers import TicketSerializer
 
@@ -161,9 +161,6 @@ def ticket_open_or_close_email(data):
             status = None
 
 
-
-
-
 def ticket_comment_email(data, request_user):
     is_agent = User.objects.filter(id=request_user.id, groups__name="agent").first()
     is_admin = User.objects.filter(id=request_user.id, groups__name="admin").first()
@@ -194,7 +191,7 @@ def ticket_comment_email(data, request_user):
 
     else:
 
-        if len(data['support_agent']) > 0:
+        if data['support_agent_email']:
             mailDataOfAgent = {}
 
             mailDataOfAgent['subject'] = "Client commented on ticket" + data['title']
@@ -209,7 +206,7 @@ def ticket_comment_email(data, request_user):
             except TimeoutError:
                 status = None
                 
-        elif len(data['approved_by']) > 0:
+        elif data['approved_by_email']:
             mailDataOfApprovedBy = {}
 
             mailDataOfApprovedBy['subject'] = "Client commented on ticket" + data['title']
@@ -223,3 +220,27 @@ def ticket_comment_email(data, request_user):
                 status = adminResult.get(timeout=30)
             except TimeoutError:
                 status = None
+
+
+def sendTicketDataToWebSocket(data, request_user):
+
+    socketReceiversData = {
+        "user":None,
+        "agent":None,
+        "admin":"admin",
+    }
+
+    ticket_creator = User.objects.filter(email=data['email']).first()
+    
+    if ticket_creator:
+        socketReceiversData['user'] = str(data['email']).replace("@",'')
+
+    if data["support_agent"]:
+        socketReceiversData['agent'] = data['support_agent']['id']
+
+    ticketSendToWebSocketResult = sendTicketToWebSocket.delay(socketReceiversData, data)
+
+    try:
+        status = ticketSendToWebSocketResult.get(timeout=30)
+    except TimeoutError:
+        status = None

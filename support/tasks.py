@@ -1,10 +1,13 @@
 from celery import shared_task
 from .models import TicketModel
-from .serializers import TicketLogsSerializer, TicketLogsModel
+from .serializers import TicketLogsSerializer, TicketLogsModel, TicketSerializer
 from django.contrib.auth import get_user_model
 from main import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from channels.layers import get_channel_layer
+import asyncio, json
+from asgiref.sync import async_to_sync
 
 User = get_user_model()
 
@@ -58,3 +61,52 @@ def ticketEmailSend(self, mailData):
     except Exception as e:
         print(e)
         return False
+
+
+
+@shared_task(bind=True)
+def sendTicketToWebSocket(self, socketReceiversData, ticketData, **kwargs):
+    channel_layer = get_channel_layer()
+    
+    async def send_ticket(group_name, room_name, ticketData):
+        try:
+            group_room_name = "ticket_"+str(group_name)+'_'+str(room_name)
+
+            await (channel_layer.group_send(
+                group_room_name,
+                {
+                    'type': 'send_ticket_data',
+                    'message': ticketData,
+                }
+            ))
+        except Exception as e:
+            print("Error sending ticket to websocket: {}".format(str(e)))
+
+
+    async def send_all_ticket_receiver():
+        tasks = []
+        for key, value in socketReceiversData.items():
+            if value:
+                try:
+                    # await send_ticket(key, value, ticketData)
+                    task = asyncio.ensure_future(send_ticket(key, value, ticketData))
+                    tasks.append(task)
+                except Exception as e:
+                    print('ensure_future ', str(e))
+        await asyncio.gather(*tasks)
+    
+    
+    try:
+
+        try:
+            # async_to_sync(send_all_ticket_receiver)()
+            asyncio.run(send_all_ticket_receiver())
+        except Exception as e:
+            print("looping section error: ", str(e))
+
+        return True
+
+    except Exception as e:
+        print("hello error", str(e))
+        return False
+

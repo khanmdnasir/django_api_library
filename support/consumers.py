@@ -11,21 +11,24 @@ class TicketConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.group_name = self.scope["url_route"]["kwargs"]["group_name"]
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = "ticket_%s" % self.room_name
+        self.separator = "_"
+
+        if self.group_name=='user' and ("@" in self.room_name):
+            self.room_group_name = "ticket_%s_%s" % (str(self.group_name) , str(self.room_name).replace('@','') )
+        else:
+            self.room_group_name = "ticket_%s_%s" % (str(self.group_name), self.room_name)
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
         
-        # group_name =[admin/agent/details], room_name = [None/agent_id/ticket_id]
-        data = await self.get_queryset(self.group_name, self.room_name) 
-
-        # print('\n\n\n data',data)
-
-        await self.channel_layer.group_send(
-            self.room_group_name, {"type": "send_ticket_data", "message": data}
-        )
+        # # group_name =[admin/agent/user/details], room_name = [None/agent_id/user's_email/ticket_id]
+        # data = await self.get_queryset(self.group_name, self.room_name) 
+        # # sending data when channel is connected
+        # await self.channel_layer.group_send(
+        #     self.room_group_name, {"type": "send_ticket_data", "message": data}
+        # )
 
     async def disconnect(self, close_code):
         # Leave room group
@@ -57,6 +60,10 @@ class TicketConsumer(AsyncWebsocketConsumer):
 
         elif source=='agent' and source_id!=None:
             tickets = TicketModel.objects.filter(is_active=True,support_agent__id=source_id).all()
+            data = TicketSerializer(tickets, many=True).data
+
+        elif source=='user' and source_id!=None:
+            tickets = TicketModel.objects.filter(is_active=True,email=source_id).all()
             data = TicketSerializer(tickets, many=True).data
 
         elif source=='details' and source_id!=None:
