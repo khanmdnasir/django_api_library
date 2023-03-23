@@ -9,4 +9,5 @@ websocket_urlpatterns = [
     #group_name = 'agent' , room_id = agent_id
     #group_name = 'user' , room_id = user's_email
     #group_name = 'details' , room_id = ticket_id
+    #group_name = 'comments' , room_id = ticket_id
 ]

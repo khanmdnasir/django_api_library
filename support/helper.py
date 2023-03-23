@@ -1,4 +1,4 @@
-from .tasks import User, ticketEmailSend, sendTicketToWebSocket
+from .tasks import *
 from .models import TicketModel
 from .serializers import TicketSerializer
 
@@ -239,6 +239,26 @@ def sendTicketDataToWebSocket(data, request_user):
         socketReceiversData['agent'] = data['support_agent']['id']
 
     ticketSendToWebSocketResult = sendTicketToWebSocket.delay(socketReceiversData, data)
+
+    try:
+        status = ticketSendToWebSocketResult.get(timeout=30)
+    except TimeoutError:
+        status = None
+
+
+def sendTicketDetailsDataToWebSocket(ticketDetails):
+
+    ticketSendToWebSocketResult = sendTicketDetailsToWebSocket.delay(ticketDetails)
+
+    try:
+        status = ticketSendToWebSocketResult.get(timeout=30)
+    except TimeoutError:
+        status = None
+
+
+def sendTicketCommentDataToWebSocket(comment):
+
+    ticketSendToWebSocketResult = sendTicketCommentToWebSocket.delay(comment)
 
     try:
         status = ticketSendToWebSocketResult.get(timeout=30)

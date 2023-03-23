@@ -43,8 +43,15 @@ class TicketConsumer(AsyncWebsocketConsumer):
             self.room_group_name, {"type": "send_ticket_data", "message": data}
         )
 
-    # Receive message from room group
     async def send_ticket_data(self, event):
+        message = event["message"]
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({"message": message}))
+    
+
+
+    async def send_comment_data(self, event):
         message = event["message"]
 
         # Send message to WebSocket

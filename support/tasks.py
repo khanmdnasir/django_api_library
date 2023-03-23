@@ -8,6 +8,8 @@ from django.template.loader import render_to_string
 from channels.layers import get_channel_layer
 import asyncio, json
 from asgiref.sync import async_to_sync
+from celery.exceptions import Ignore
+
 
 User = get_user_model()
 
@@ -110,3 +112,69 @@ def sendTicketToWebSocket(self, socketReceiversData, ticketData, **kwargs):
         print("hello error", str(e))
         return False
 
+
+
+@shared_task(bind = True)
+def sendTicketDetailsToWebSocket(self, ticketDetailsData):
+    
+    try:
+        if ticketDetailsData:
+            channel_layer = get_channel_layer()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(channel_layer.group_send(
+                "ticket_details_"+str(ticketDetailsData['id']),
+                {
+                    'type': 'send_ticket_data',
+                    'message': ticketDetailsData,
+                }))
+
+        else:
+            self.update_state(
+                state = 'FAILURE',
+                meta = {'exe': "Not Found"}
+            )
+
+            raise Ignore()
+
+    except Exception as e:
+        print(str(e))
+        self.update_state(
+                state = 'FAILURE',
+                meta = {'exe': "Failed"})
+
+        raise Ignore()
+
+
+
+@shared_task(bind = True)
+def sendTicketCommentToWebSocket(self, comment):
+    
+    try:
+        if comment:
+            channel_layer = get_channel_layer()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            ticket_id = comment['ticket_id']
+            loop.run_until_complete(channel_layer.group_send(
+                "ticket_comments_"+str(ticket_id),
+                {
+                    'type': 'send_comment_data',
+                    'message': comment,
+                }))
+
+        else:
+            self.update_state(
+                state = 'FAILURE',
+                meta = {'exe': "Not Found"}
+            )
+
+            raise Ignore()
+
+    except Exception as e:
+        print(str(e))
+        self.update_state(
+                state = 'FAILURE',
+                meta = {'exe': "Failed"})
+
+        raise Ignore()

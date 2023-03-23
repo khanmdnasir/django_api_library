@@ -248,23 +248,23 @@ class TicketViewSet(viewsets.ModelViewSet):
                 print(str(e))
 
 
+            # signal for storing log and send email
+            try:
+                ticket_dict = newData
+                ticket_dict['action_types'] = 'created'
+                ticket_dict['details'] = ''
+                ticket_dict['support_agent'] = None
+                ticket_dict['action_creators_email'] = ticket_dict['email']
+                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+            except Exception as e:
+                print("signal for storing log"+str(e))
 
-            # # signal for storing log and send email
-            # try:
-            #     ticket_dict = newData
-            #     ticket_dict['action_types'] = 'created'
-            #     ticket_dict['details'] = ''
-            #     ticket_dict['support_agent'] = None
-            #     ticket_dict['action_creators_email'] = ticket_dict['email']
-            #     ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
-            # except Exception as e:
-            #     print("signal for storing log"+str(e))
+            # send email
+            try:
+                ticket_create_email(newData)
+            except Exception as e:
+                print(str(e))
 
-            # # send email
-            # try:
-            #     ticket_create_email(newData)
-            # except Exception as e:
-            #     print(str(e))
             return Response({"success": True, "data": newData})
 
     def partial_update(self, request, pk):
@@ -357,6 +357,15 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": str(e)})
         else:
             newData = serializer.data
+
+            # sending data to websocket
+            try:
+                sendTicketDataToWebSocket(newData, request.user)
+                sendTicketDetailsDataToWebSocket(newData)
+
+            except Exception as e:
+                print(str(e))
+
             return Response({"success": True, "data": newData})
 
     def destroy(self, request, pk):
@@ -423,6 +432,14 @@ class CloseOrOpenTicketApi(APIView):
 
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
 
+                # sending data to websocket
+                try:
+                    sendTicketDataToWebSocket(ticket_dict, request.user)
+
+                except Exception as e:
+                    print(str(e))
+
+
                 # send email
                 try:
                     ticket_open_or_close_email(ticket_dict)
@@ -452,6 +469,13 @@ class CloseOrOpenTicketApi(APIView):
                 ticket_dict['action_creators_email'] = request.user.email
 
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+                
+                # sending data to websocket
+                try:
+                    sendTicketDataToWebSocket(ticket_dict, request.user)
+
+                except Exception as e:
+                    print(str(e))
 
 
                 # send email
@@ -459,6 +483,9 @@ class CloseOrOpenTicketApi(APIView):
                     ticket_open_or_close_email(ticket_dict)
                 except Exception as e:
                     print(str(e))
+
+                
+
 
                 return Response({"success": True, "data": "The ticket closed successfully"})
 
@@ -525,11 +552,19 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
+
+            # Send data to web socket
+            try:
+                sendTicketCommentDataToWebSocket(serializer.data)
+            except Exception as e:
+                print("error in ticket comment sending to web socket ",str(e))
+
+
             # send email to user/agent
             try:
                 ticket_comment_email(serializer.data, request.user)
             except Exception as e:
-                print("error in ticket comment email"+str(e))
+                print("error in ticket comment email ",str(e))
 
         except Exception as e:
             print(str(e))
@@ -561,6 +596,14 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": str(e)})
         else:
             newData = serializer.data
+
+            # Send data to web socket
+            try:
+                sendTicketCommentDataToWebSocket(serializer.data)
+            except Exception as e:
+                print("error in ticket comment sending to web socket ",str(e))
+
+
             return Response({"success": True, "data": newData})
 
     def destroy(self, request, pk):
