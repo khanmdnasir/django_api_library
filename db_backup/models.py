@@ -20,16 +20,18 @@ def db_backup_handler(sender, instance, created, **kwargs):
     # call group_send function directly to send notificatoions or you can create a dynamic task in celery beat
     
     schedule, created = CrontabSchedule.objects.get_or_create(hour = instance.schedule_hour, minute = instance.schedule_minute, day_of_month = instance.schedule_day, month_of_year = instance.schedule_month)
-    periodic_task = PeriodicTask.objects.filter(name="db-backup")
-    if len(periodic_task) > 0:
-        for ptask in periodic_task:
-            ptask.update(crontab=schedule, name="db-backup", task="db_backup.tasks.db_backup_task", args=json.dumps((instance.active,)))
-    else:   
-        PeriodicTask.objects.create(crontab=schedule, name="db-backup", task="db_backup.tasks.db_backup_task", args=json.dumps((instance.active,)))
+    periodic_task = PeriodicTask.objects.filter(name="db-backup").first()
+    if periodic_task:
+        if instance.active:
+            periodic_task.update(crontab=schedule, name="db-backup", task="db_backup.tasks.db_backup_task")
+        else:
+            periodic_task.delete()
+    else: 
+        if instance.active:  
+            PeriodicTask.objects.create(crontab=schedule, name="db-backup", task="db_backup.tasks.db_backup_task")
 
 @receiver(post_delete,sender=DbBackupModel)
 def db_backkup_handler_delete(sender, instance, created, **kwargs):
-    periodic_task = PeriodicTask.objects.filter(name="db-backup")
-    if len(periodic_task) > 0:
-        for ptask in periodic_task:
-            ptask.delete()
+    periodic_task = PeriodicTask.objects.filter(name="db-backup").first()
+    if periodic_task:
+        periodic_task.delete()

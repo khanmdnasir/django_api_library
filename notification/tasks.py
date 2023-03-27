@@ -19,34 +19,33 @@ def broadcast_notification(self, instance):
         notification = NotificationModel.objects.get(id = int(instance))
         print(notification.message)
         if notification:
-            if notification.active:
-                channel_layer = get_channel_layer()
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(channel_layer.group_send(
-                    "notification_"+notification.subscription.name,
-                    {
-                        'type': 'send_notification',
-                        'message': json.dumps(notification.message),
-                    }))
-                if notification.subscription.send_to_all == True:
-                    users = User.objects.all()
-                else:
-                    users = notification.subscription.receiver
-                
-                if len(users) > 0:
-                    for user in users:
-                        user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
-                        user_notification_read.total_notification += 1
-                        user_notification_read.save()
-
-                if notification.notification_type == 'broadcast':
-                    notification.delete()
-
-                return 'Done'
+            
+            channel_layer = get_channel_layer()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(channel_layer.group_send(
+                "notification_"+notification.subscription.name,
+                {
+                    'type': 'send_notification',
+                    'message': json.dumps(notification.message),
+                }))
+            if notification.subscription.send_to_all == True:
+                users = User.objects.all()
             else:
-                print('Not Active')
-                pass
+                users = notification.subscription.receiver
+            
+            if len(users) > 0:
+                for user in users:
+                    user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
+                    user_notification_read.total_notification += 1
+                    user_notification_read.save()
+
+            if notification.is_onetime == True:
+                notification.active = False
+                notification.save()
+
+            return 'Done'
+            
 
         else:
             self.update_state(
@@ -71,10 +70,10 @@ def broadcast_notification(self, instance):
         raise Ignore()
 
 @shared_task(bind = True)
-def non_schedule_notification(self,message,users):
+def non_schedule_notification(self,subscription,message,users):
     
     try:
-        notification = NotificationModel.objects.create(notification_type='non_schedule',message=message,receiver=users)
+        notification = NotificationModel.objects.create(subscription=subscription,notification_type='non_schedule',message=message,active=False)
         if notification:
             
             channel_layer = get_channel_layer()
@@ -129,14 +128,13 @@ def schedule_sms_send_task(self,instance):
     try:
         smsData = SMSScheduleModel.objects.get(id = int(instance))
         sms_config = SMSConfigModel.objects.get()
-        if sms_config.send_to_all:
+        if smsData.send_to_all:
             users = User.objects.all()
         else:
             users = smsData.receiver
 
-        if smsData.active:
-            for u in users:
-                send_sms({'to_number':u.phone,'from_number':sms_config.from_number,'body':smsData.text})
+        for u in users:
+            send_sms({'to_number':u.phone,'from_number':sms_config.from_number,'body':smsData.text})
         return True
     except Exception as e:
         print(str(e))
@@ -160,18 +158,18 @@ def schedule_mail_send_task(self,instance):
         text_content = mailData.text        
         html_content = f"<p>{text_content}</p>" 
         try:
-            if mailData.active:
-                if mailData.send_to_all:
-                    users = User.objects.all()
-                else:
-                    users = mailData.receiver
+            
+            if mailData.send_to_all:
+                users = User.objects.all()
+            else:
+                users = mailData.receiver
 
-                for u in users:
-                    email = EmailMultiAlternatives(
-                        mail_subject, text_content, settings.HOST_EMAIL_ADDRESS, [u.email])
-                    email.attach_alternative(html_content, "text/html")
-                    # email.attach_file(invoice['file_path'])
-                    email.send()
+            for u in users:
+                email = EmailMultiAlternatives(
+                    mail_subject, text_content, settings.HOST_EMAIL_ADDRESS, [u.email])
+                email.attach_alternative(html_content, "text/html")
+                # email.attach_file(invoice['file_path'])
+                email.send()
             return True
         except Exception as e:
             print(e)

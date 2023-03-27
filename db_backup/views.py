@@ -58,7 +58,7 @@ class DbBackupApi(APIView):
     permission_classes = [IsAuthenticated]
     def post(self,request):
         try:
-            db_backup_task(True)
+            db_backup_task()
             
         except Exception as e:
             print(e)
