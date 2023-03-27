@@ -255,7 +255,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 ticket_dict = newData
                 ticket_dict['action_types'] = 'created'
                 ticket_dict['details'] = ''
-                ticket_dict['support_agent'] = None
+                ticket_dict['support_agent'] = ticket_dict['support_agent']
                 ticket_dict['action_creators_email'] = ticket_dict['email']
                 ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
             except Exception as e:
@@ -267,7 +267,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(str(e))
 
-            return Response({"success": True, "data": newData})
+            return Response({"success": True, "data": serializer.data})
 
     def partial_update(self, request, pk):
         try:

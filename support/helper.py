@@ -3,16 +3,31 @@ from .models import TicketModel
 from .serializers import TicketSerializer
 
 def ticket_create_email(data):
+
+    # send email to creator
     mailDataOfUser = {}
     mailDataOfUser['subject'] = "Your Ticket Have been created"
     mailDataOfUser['content'] = "Your Ticket's Content"
     mailDataOfUser['template_path'] = "email/template.html"
     mailDataOfUser['users'] = [data['email']]
     userResult = ticketEmailSend.delay(mailDataOfUser)
-    try:
-        status = userResult.get(timeout=30)
-    except TimeoutError:
-        status = None
+
+    # try:
+    #     status = userResult.get(timeout=30)
+    # except TimeoutError:
+    #     status = None
+
+    # send email to support agent
+    if data["support_agent"] is not None:
+        mailDataOfAgent = {}
+        mailDataOfAgent['subject'] = "You are assigned to a ticket"
+        mailDataOfAgent['content'] = "You are now assigned in the ticket ( Ticket Name: " + data['title'] +", Ticket ID: "+ str(data["id"])
+        mailDataOfAgent['template_path'] = "email/template.html"
+        new_agent_object = User.objects.get(pk=data['support_agent']['id'])
+        mailDataOfAgent['users'] = [new_agent_object.email]
+
+        agentResult = ticketEmailSend.delay(mailDataOfAgent)
+
     # send email to admins
     mailDataOfAdmins = {}
     all_admin = User.objects.filter(groups__name="admin").values('email')
@@ -22,10 +37,6 @@ def ticket_create_email(data):
     mailDataOfAdmins['template_path'] = "email/template.html"
     mailDataOfAdmins['users'] = all_admins_email
     adminResult = ticketEmailSend.delay(mailDataOfAdmins)
-    try:
-        status = adminResult.get(timeout=30)
-    except TimeoutError:
-        status = None
 
 
 def ticket_update_email(mailData, differences, request_user):
@@ -39,7 +50,7 @@ def ticket_update_email(mailData, differences, request_user):
                     data={}
                     data['subject'] = "Agent have been changed"
 
-                    data['content'] = "You are not assigned in the ticket ( Ticket Name: " + mailData['title'] +", Ticket ID: "+ str(mailData['id']) + ",  anymore"
+                    data['content'] = "You are not assigned in the ticket ( Ticket Name: " + mailData['title'] +", Ticket ID: "+ str(mailData['id']) + "), anymore"
                     old_agent_object = User.objects.get(pk=old_agent)
                     data['users'] = [old_agent_object.email]
                     data['template_path'] = "email/template.html"
@@ -50,7 +61,7 @@ def ticket_update_email(mailData, differences, request_user):
                 if new_agent:
                     data={}
                     data['subject'] = "You are assigned to a ticket"
-                    data['content'] = "You are now assigned in the ticket ( Ticket Name: " + mailData['title'] +", Ticket ID: "+ str(mailData["id"])
+                    data['content'] = "You are now assigned in the ticket ( Ticket Name: " + mailData['title'] +", Ticket ID: "+ str(mailData["id"]) + ")"
                     new_agent_object = User.objects.get(pk=new_agent)
                     data['users'] = [new_agent_object.email]
                     data['template_path'] = "email/template.html"
@@ -139,10 +150,6 @@ def ticket_open_or_close_email(data):
     mailDataOfUser['template_path'] = "email/template.html"
     mailDataOfUser['users'] = [data['email']]
     userResult = ticketEmailSend.delay(mailDataOfUser)
-    try:
-        status = userResult.get(timeout=30)
-    except TimeoutError:
-        status = None
         
     # send email to support agent
     if len(data['support_agent']) > 0:
@@ -155,10 +162,7 @@ def ticket_open_or_close_email(data):
         mailDataOfAdmins['template_path'] = "email/template.html"
         mailDataOfAdmins['users'] = [data['support_agent']['email']]
         adminResult = ticketEmailSend.delay(mailDataOfAdmins)
-        try:
-            status = adminResult.get(timeout=30)
-        except TimeoutError:
-            status = None
+
 
 
 def ticket_comment_email(data, request_user):
@@ -175,8 +179,8 @@ def ticket_comment_email(data, request_user):
 
 
     if is_agent or is_admin:
-        subject = "Someone commented on your ticket"
-        content = "Mr.X wrote a comment on your ticket. Ticket: " + data['title'] + "Ticket ID: " + str(data['ticket_id'])
+        subject = "Support Agent commented on your ticket"
+        content = "Support Agent wrote a comment on your ticket. Ticket: " + data['title'] + "Ticket ID: " + str(data['ticket_id'])
 
         mailDataOfUser = {}
         mailDataOfUser['subject'] = subject
@@ -184,10 +188,6 @@ def ticket_comment_email(data, request_user):
         mailDataOfUser['template_path'] = "email/template.html"
         mailDataOfUser['users'] = [data['email']]
         userResult = ticketEmailSend.delay(mailDataOfUser)
-        try:
-            status = userResult.get(timeout=30)
-        except TimeoutError:
-            status = None
 
     else:
 
@@ -201,10 +201,7 @@ def ticket_comment_email(data, request_user):
             mailDataOfAgent['template_path'] = "email/template.html"
             mailDataOfAgent['users'] = [data['support_agent_email']]
             agentResult = ticketEmailSend.delay(mailDataOfAgent)
-            try:
-                status = agentResult.get(timeout=30)
-            except TimeoutError:
-                status = None
+
                 
         elif data['approved_by_email']:
             mailDataOfApprovedBy = {}
@@ -216,10 +213,7 @@ def ticket_comment_email(data, request_user):
             mailDataOfApprovedBy['template_path'] = "email/template.html"
             mailDataOfApprovedBy['users'] = [data['approved_by_email']]
             adminResult = ticketEmailSend.delay(mailDataOfApprovedBy)
-            try:
-                status = adminResult.get(timeout=30)
-            except TimeoutError:
-                status = None
+
 
 
 def sendTicketDataToWebSocket(data, request_user):
@@ -240,27 +234,14 @@ def sendTicketDataToWebSocket(data, request_user):
 
     ticketSendToWebSocketResult = sendTicketToWebSocket.delay(socketReceiversData, data)
 
-    try:
-        status = ticketSendToWebSocketResult.get(timeout=30)
-    except TimeoutError:
-        status = None
 
 
 def sendTicketDetailsDataToWebSocket(ticketDetails):
 
     ticketSendToWebSocketResult = sendTicketDetailsToWebSocket.delay(ticketDetails)
 
-    try:
-        status = ticketSendToWebSocketResult.get(timeout=30)
-    except TimeoutError:
-        status = None
 
 
 def sendTicketCommentDataToWebSocket(comment):
 
     ticketSendToWebSocketResult = sendTicketCommentToWebSocket.delay(comment)
-
-    try:
-        status = ticketSendToWebSocketResult.get(timeout=30)
-    except TimeoutError:
-        status = None

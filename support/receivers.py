@@ -8,12 +8,12 @@ from celery.result import TimeoutError
 def ticket_log_signals(sender, data, **kwargs):
     try:
         result = storeTicketLog.delay(data)
-        try:
-            status = result.get(timeout=30)
-            print("Log status",status)
-        except TimeoutError:
-            status = None
-            print("Log status",status)
+        # try:
+        #     status = result.get(timeout=30)
+        #     print("Log status",status)
+        # except TimeoutError:
+        #     status = None
+        #     print("Log status",status)
 
     except Exception as e:
         # log the error
