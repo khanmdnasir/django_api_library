@@ -10,10 +10,13 @@ from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from django.forms.models import model_to_dict
 from phonenumbers import format_number, PhoneNumberFormat
+from celery.result import TimeoutError
+
 import json
 from .signals import *
 from .tasks import *
 from .helper import *
+
 # Create your views here.
 
 
@@ -322,26 +325,6 @@ class TicketViewSet(viewsets.ModelViewSet):
                                 else:
                                     if 'support.can_close_ticket' not in users_permissions:
                                         return Response({"success": False, "error": "You don't have permission to change due_date"}) 
-
-                            differences_txt = json.dumps(differences) # dict to json
-
-                            # signal for storing log
-
-                            ticket_dict = serializer.data
-                            ticket_dict['action_types'] = 'updated'
-                            ticket_dict['details'] = differences_txt
-                            ticket_dict['action_creators_email'] = request.user.email
-
-                            ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
-
-                            # sending email
-                            # raise
-
-                            try:
-                                email_sending_status = ticket_update_email(serializer.data, differences, request.user)
-                                print('email_sending_status',email_sending_status)
-                            except Exception as e:
-                                print("Sending email error: "+str(e))
                     
                     except IntegrityError as e:
                         transaction.rollback()
@@ -354,8 +337,34 @@ class TicketViewSet(viewsets.ModelViewSet):
                 return Response({"success": False, "error": "Ticket Does Not Exist!"})
         except Exception as e:
             return Response({"success": False, "error": str(e)})
+
         else:
             newData = serializer.data
+
+            differences_txt = json.dumps(differences) # dict to json
+
+            # signal for storing log
+
+            try:
+                ticket_dict = serializer.data
+                ticket_dict['action_types'] = 'updated'
+                ticket_dict['details'] = differences_txt
+                ticket_dict['action_creators_email'] = request.user.email
+
+                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+            except Exception as e:
+                print("Ticket Log creating for ticket create error: "+str(e))
+
+
+            # sending email
+            # raise
+
+            try:
+                email_sending_status = ticket_update_email(serializer.data, differences, request.user)
+                print('email_sending_status',email_sending_status)
+            except Exception as e:
+                print("Sending email error: "+str(e))
+
 
             # sending data to websocket
             try:
@@ -424,12 +433,15 @@ class CloseOrOpenTicketApi(APIView):
 
                 # send signal to store ticket log
 
-                ticket_dict = TicketSerializer(instance=ticket, many=False).data
-                ticket_dict['action_types'] = 'open_ticket'
-                ticket_dict['details'] = "ticket opened by " + request.user.email
-                ticket_dict['action_creators_email'] = request.user.email
-
-                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+                try:
+                    ticket_dict = TicketSerializer(instance=ticket, many=False).data
+                    ticket_dict['action_types'] = 'open_ticket'
+                    ticket_dict['details'] = "ticket opened by " + request.user.email
+                    ticket_dict['action_creators_email'] = request.user.email
+                    ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+                
+                except Exception as e:
+                    print(str(e))
 
                 # sending data to websocket
                 try:
@@ -461,13 +473,17 @@ class CloseOrOpenTicketApi(APIView):
                 ticket.save()
 
                 # send signal to store ticket log
+                try:
+                    ticket_dict = TicketSerializer(instance=ticket, many=False).data
+                    ticket_dict['action_types'] = 'close_ticket'
+                    ticket_dict['details'] = "ticket closed by " + request.user.email
+                    ticket_dict['action_creators_email'] = request.user.email
 
-                ticket_dict = TicketSerializer(instance=ticket, many=False).data
-                ticket_dict['action_types'] = 'close_ticket'
-                ticket_dict['details'] = "ticket closed by " + request.user.email
-                ticket_dict['action_creators_email'] = request.user.email
+                    ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
+                                  
+                except Exception as e:
+                    print(str(e))
 
-                ticket_log_task.send(sender=request.user.__class__, data=ticket_dict)
                 
                 # sending data to websocket
                 try:

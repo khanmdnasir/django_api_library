@@ -9,7 +9,7 @@ def ticket_log_signals(sender, data, **kwargs):
     try:
         result = storeTicketLog.delay(data)
         try:
-            status = result.get(timeout=10)
+            status = result.get(timeout=30)
             print("Log status",status)
         except TimeoutError:
             status = None

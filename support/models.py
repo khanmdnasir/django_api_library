@@ -90,7 +90,7 @@ class TicketModel(models.Model):
         )
 
     def __str__(self):
-        return self.title + ", Status: " + ("open" if self.is_open else "close")
+        return self.title + ", Status: " + ("open" if self.is_open else "close") + ", Ticket ID: " + str(self.id)
 
 
 
@@ -158,4 +158,4 @@ class TicketLogsModel(models.Model):
         ordering = ["-id"]
 
     def __str__(self):
-        return ("Ticket: " + self.ticket_id.title[:20] if len(self.ticket_id.title) > 20 else self.ticket_id.title) + ", Ticket Status: " + self.ticket_status
+        return ("Ticket: " + self.ticket_id.title[:20] if len(self.ticket_id.title) > 20 else self.ticket_id.title) + ", Ticket Status: " + self.ticket_status + ", Ticket ID: " + str(self.ticket_id.id)
