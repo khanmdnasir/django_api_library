@@ -11,7 +11,6 @@ from rest_framework.exceptions import NotFound
 from django.forms.models import model_to_dict
 from phonenumbers import format_number, PhoneNumberFormat
 import json
-from .customPermissionClasses import users_all_permission
 from .signals import *
 from .tasks import *
 from .helper import *

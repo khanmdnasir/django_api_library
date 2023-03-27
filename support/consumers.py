@@ -23,6 +23,15 @@ class TicketConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
         
+
+        user = self.scope['user']
+
+        if user is None:
+            await self.send(json.dumps({"message": "Unauthenticated User"}))
+            print('disconnected')
+            await self.close()
+
+
         # # group_name =[admin/agent/user/details], room_name = [None/agent_id/user's_email/ticket_id]
         # data = await self.get_queryset(self.group_name, self.room_name) 
         # # sending data when channel is connected
