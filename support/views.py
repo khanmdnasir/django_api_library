@@ -61,6 +61,7 @@ class CustomPagination(pagination.PageNumberPagination):
             'current_page': self.page.number,
             'total_object': self.page.paginator.count,
             'total_page': self.page.paginator.num_pages,
+            'success':True,
             'results': data
         })
 paginator = CustomPagination()
@@ -112,7 +113,7 @@ class IssueTypesViewSet(viewsets.ModelViewSet):
 
         if self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
             serializer = IssueTypesSerializer(queryset, many=True)
-            return Response({'results': serializer.data})
+            return Response({"success": True, 'results': serializer.data})
         else:
             page = self.paginate_queryset(queryset)
             serializer = IssueTypesSerializer(page, many=True)
@@ -211,21 +212,27 @@ class TicketViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
                 
             if agent_id:
-                queryset = TicketModel.objects.filter(
-                    is_active=True, support_agent=agent_id).all()
+                if hasPermission:
+                    queryset = TicketModel.objects.filter(
+                        is_active=True, support_agent=agent_id).all()
+                else:
+                    return Response({"success":False, 'results': "You don't have permission to view tickets assigned by this agent"})
             
             elif not hasPermission:
                 queryset = TicketModel.objects.filter(
                     is_active=True, email=request_user.email).all()
 
             serializer = TicketSerializer(queryset, many=True)
-            return Response({'results': serializer.data})
+            return Response({"success": True, 'results': serializer.data})
 
         else:
 
             if agent_id:
-                queryset = TicketModel.objects.filter(
-                    is_active=True, support_agent=agent_id).all()
+                if hasPermission:
+                    queryset = TicketModel.objects.filter(
+                        is_active=True, support_agent=agent_id).all()
+                else:
+                    return Response({"success":False,'results': "You don't have permission to view tickets assigned by this agent"})
             
             elif not hasPermission:
                 queryset = TicketModel.objects.filter(
@@ -576,7 +583,7 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
                 queryset = TicketCommentsModel.objects.filter(is_active=True, ticket_id=ticket_id).all()
 
             serializer = self.get_serializer(queryset, many=True)
-            return Response({'results': serializer.data})
+            return Response({"success": True, 'results': serializer.data})
 
         else:
             if ticket_id:
@@ -701,7 +708,7 @@ class TicketLogsViewSet(viewsets.ModelViewSet):
                 queryset = TicketLogsModel.objects.filter(ticket_id=ticket_id).all()
 
             serializer = self.get_serializer(queryset, many=True)
-            return Response({'results': serializer.data})
+            return Response({"success": True, 'results': serializer.data})
 
         else:
             if ticket_id:
