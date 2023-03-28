@@ -11,6 +11,7 @@ from rest_framework.exceptions import NotFound
 from django.forms.models import model_to_dict
 from phonenumbers import format_number, PhoneNumberFormat
 from celery.result import TimeoutError
+from rest_framework.permissions import DjangoModelPermissions
 
 import json
 from .signals import *
@@ -21,6 +22,19 @@ from .helper import *
 
 
 User = get_user_model()
+
+
+class ExtendedDjangoModelPermissions(DjangoModelPermissions):
+    perms_map = {
+        'GET':['%(app_label)s.view_%(model_name)s'],
+        'OPTIONS': [],
+        'HEAD': [],
+        'POST': ['%(app_label)s.add_%(model_name)s'],
+        'PUT': ['%(app_label)s.change_%(model_name)s'],
+        'PATCH': ['%(app_label)s.change_%(model_name)s'],
+        'DELETE': ['%(app_label)s.delete_%(model_name)s'],
+    }
+
 
 class CustomPagination(pagination.PageNumberPagination):
     page_query_param = 'page'
@@ -74,6 +88,11 @@ class IssueTypesViewSet(viewsets.ModelViewSet):
     queryset = IssueTypesModel.objects.all()
     serializer_class = IssueTypesSerializer
     pagination_class = CustomPagination
+
+    def get_permissions(self):
+        if self.action in ['list']:
+            self.permission_classes = [AllowAny, ]
+        return super().get_permissions()
 
 
     def retrieve(self, request, pk):
@@ -182,20 +201,36 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         queryset = TicketModel.objects.filter(is_active=True).all()
+
         agent_id = request.query_params.get('agent_id') if request.query_params else None
 
-        if agent_id:
-            queryset = TicketModel.objects.filter(
-                is_active=True, support_agent=agent_id).all()
-            page = self.paginate_queryset(queryset)
-            serializer = TicketSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+        request_user = request.user
 
-        elif self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+        hasPermission = request.user.has_perm('support.view_ticketmodel')
+
+        if self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+                
+            if agent_id:
+                queryset = TicketModel.objects.filter(
+                    is_active=True, support_agent=agent_id).all()
+            
+            elif not hasPermission:
+                queryset = TicketModel.objects.filter(
+                    is_active=True, email=request_user.email).all()
+
             serializer = TicketSerializer(queryset, many=True)
             return Response({'results': serializer.data})
 
         else:
+
+            if agent_id:
+                queryset = TicketModel.objects.filter(
+                    is_active=True, support_agent=agent_id).all()
+            
+            elif not hasPermission:
+                queryset = TicketModel.objects.filter(
+                    is_active=True, email=request_user.email).all()
+
             page = self.paginate_queryset(queryset)
             serializer = TicketSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -527,7 +562,7 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
                 newData = serializer.data
                 return Response({"success": True, "result": newData})
             else:
-                return Response({"success": False, "result": "Ticket Does Not Found"})
+                return Response({"success": False, "result": "Ticket Comment Does Not Found"})
         except Exception as e:
             return Response({"success": False, "error": str(e)})
 
@@ -535,19 +570,17 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
         queryset = TicketCommentsModel.objects.filter(is_active=True).all()
         ticket_id = request.query_params.get('ticket_id') if request.query_params else None
 
-        if ticket_id:
-            queryset = TicketCommentsModel.objects.filter(
-                is_active=True, ticket_id=ticket_id).all()
 
-            page = self.paginate_queryset(queryset)
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+        if self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+            if ticket_id:
+                queryset = TicketCommentsModel.objects.filter(is_active=True, ticket_id=ticket_id).all()
 
-        elif self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
             serializer = self.get_serializer(queryset, many=True)
             return Response({'results': serializer.data})
 
         else:
+            if ticket_id:
+                queryset = TicketCommentsModel.objects.filter(is_active=True, ticket_id=ticket_id).all()
             page = self.paginate_queryset(queryset)
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -555,8 +588,7 @@ class TicketCommentsViewSet(viewsets.ModelViewSet):
     def create(self, request):
         try:
             data = request.data
-
-            data['author_id'] = data['author']
+            data['author_id'] = request.user.id
 
             is_agent = User.objects.filter(id=request.user.id, groups__name="agent").first()
             is_admin = User.objects.filter(id=request.user.id, groups__name="admin").first()
@@ -645,7 +677,7 @@ class TicketLogsViewSet(viewsets.ModelViewSet):
     serializer_class = TicketLogsSerializer
     pagination_class = CustomPagination
     http_method_names = ['get']
-    
+    permission_classes = [ExtendedDjangoModelPermissions]
 
     def retrieve(self, request, pk):
         try:
@@ -664,18 +696,17 @@ class TicketLogsViewSet(viewsets.ModelViewSet):
         queryset = TicketLogsModel.objects.all()
         ticket_id = request.query_params.get('ticket_id') if request.query_params else None
 
-        if ticket_id:
-            queryset = TicketLogsModel.objects.filter(ticket_id=ticket_id).all()
+        if self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
+            if ticket_id:
+                queryset = TicketLogsModel.objects.filter(ticket_id=ticket_id).all()
 
-            page = self.paginate_queryset(queryset)
-            serializer = self.get_serializer(queryset, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        elif self.request.query_params.get('limit') is None or self.request.query_params.get('limit') == '0':
             serializer = self.get_serializer(queryset, many=True)
             return Response({'results': serializer.data})
 
         else:
+            if ticket_id:
+                queryset = TicketLogsModel.objects.filter(ticket_id=ticket_id).all()
+
             page = self.paginate_queryset(queryset)
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)

@@ -166,8 +166,6 @@ def ticket_open_or_close_email(data):
 
 
 def ticket_comment_email(data, request_user):
-    is_agent = User.objects.filter(id=request_user.id, groups__name="agent").first()
-    is_admin = User.objects.filter(id=request_user.id, groups__name="admin").first()
 
     ticket_instance = TicketModel.objects.get(pk=data['ticket_id'])
     ticket_serialized = TicketSerializer(instance=ticket_instance, many=False).data
@@ -178,7 +176,7 @@ def ticket_comment_email(data, request_user):
     data['approved_by_email'] = ticket_serialized['approved_by']['email'] if ticket_serialized['approved_by'] else None
 
 
-    if is_agent or is_admin:
+    if not data['is_customer']:
         subject = "Support Agent commented on your ticket"
         content = "Support Agent wrote a comment on your ticket. Ticket: " + data['title'] + "Ticket ID: " + str(data['ticket_id'])
 
