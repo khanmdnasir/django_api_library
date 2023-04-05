@@ -250,7 +250,8 @@ class NotificationSubscriptionApi(APIView):
     permission_classes = [IsAuthenticated]
     def get(self,request):
         try:
-            subscirption = NotificationSubsribe.objects.get(id=request.data['subscription_id'])
+            data = self.request.query_params
+            subscirption = NotificationSubsribe.objects.get(id=data['subscription'])
             instance=NotificationModel.objects.filter(subscription=subscirption).order_by('-id')    
             serializer=NotificationSerializer(instance, many=True)            
         except Exception as e:
@@ -327,11 +328,12 @@ class SendNotificationApi(APIView):
     permission_classes = [AllowAny]
     def post(self,request):
         try:
-            users = User.objects.filter(id__in = request.data['users'])
-            non_schedule_notification(request.data['message'],users)
+            subscription = NotificationSubsribe.objects.get(id=request.data['subscription'])
+            
+            non_schedule_notification(subscription,request.data['message'],request.user)
             
         except Exception as e:
-            print(e)
+            print('view',e)
             return Response({"success": False,"error": str(e) })
         else:
             
@@ -341,8 +343,8 @@ class SendNotificationAllApi(APIView):
     permission_classes = [AllowAny]
     def post(self,request):
         try:
-            users = User.objects.all()
-            non_schedule_notification(request.data['message'],users)
+            subscription = NotificationSubsribe.objects.get(id=request.data['subscription'])
+            non_schedule_notification(subscription,request.data['message'],request.user)
             
         except Exception as e:
             print(e)

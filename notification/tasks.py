@@ -21,22 +21,22 @@ def broadcast_notification(self, instance):
         if notification:
             
             channel_layer = get_channel_layer()
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(channel_layer.group_send(
-                "notification_"+notification.subscription.name,
-                {
-                    'type': 'send_notification',
-                    'message': json.dumps(notification.message),
-                }))
+            async_to_sync(channel_layer.group_send)(
+            'notification_'+str(notification.subscription.name),
+            {
+                'type': 'send_notification',
+                'message': json.dumps(notification.message),
+            })
             if notification.subscription.send_to_all == True:
                 users = User.objects.all()
             else:
-                users = notification.subscription.receiver
+                users = notification.subscription.receiver.all()
+            print('users',users)
             
             if len(users) > 0:
                 for user in users:
-                    user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
+                    user_notification_read,created = UserNotificationRead.objects.get_or_create(user=user)
+                    print('user notification read',user_notification_read)
                     user_notification_read.total_notification += 1
                     user_notification_read.save()
 
@@ -48,6 +48,7 @@ def broadcast_notification(self, instance):
             
 
         else:
+            print('no notification')
             self.update_state(
                 state = 'FAILURE',
                 meta = {'exe': "Not Found"}
@@ -70,46 +71,45 @@ def broadcast_notification(self, instance):
         raise Ignore()
 
 @shared_task(bind = True)
-def non_schedule_notification(self,subscription,message,users):
+def non_schedule_notification(self,subscription,message,user):
     
     try:
-        notification = NotificationModel.objects.create(subscription=subscription,notification_type='non_schedule',message=message,active=False)
+        notification = NotificationModel.objects.create(subscription=subscription,notification_type='non_schedule',message=message,created_by=user,active=False)
         if notification:
             
             channel_layer = get_channel_layer()
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(channel_layer.group_send(
-                "notification_"+notification.subscription.name,
-                {
-                    'type': 'send_notification',
-                    'message': json.dumps(notification.message),
-                }))
-            notification.sent = True
-            notification.save()
+            
+            async_to_sync(channel_layer.group_send)(
+            'notification_'+str(notification.subscription.name),
+            {
+                'type': 'send_notification',
+                'message': json.dumps(message),
+            })
+            
 
             if notification.subscription.send_to_all == True:
                 users = User.objects.all()
             else:
-                users = notification.subscription.receiver
+                users = notification.subscription.receiver.all()
             
             if len(users) > 0:
                 for user in users:
-                    user_notification_read = UserNotificationRead.objects.get_or_create(user=user)
+                    user_notification_read,created = UserNotificationRead.objects.get_or_create(user=user)
                     user_notification_read.total_notification += 1
                     user_notification_read.save()
 
             return 'Done'
 
-        else:
-            self.update_state(
-                state = 'FAILURE',
-                meta = {'exe': "Not Found"}
-            )
+        # else:
+        #     self.update_state(
+        #         state = 'FAILURE',
+        #         meta = {'exe': "Not Found"}
+        #     )
 
-            raise Ignore()
+        #     raise Ignore()
 
-    except:
+    except Exception as e:
+        print(str(e))
         self.update_state(
                 state = 'FAILURE',
                 meta = {
@@ -131,7 +131,7 @@ def schedule_sms_send_task(self,instance):
         if smsData.send_to_all:
             users = User.objects.all()
         else:
-            users = smsData.receiver
+            users = smsData.receiver.all()
 
         for u in users:
             send_sms({'to_number':u.phone,'from_number':sms_config.from_number,'body':smsData.text})
@@ -162,7 +162,7 @@ def schedule_mail_send_task(self,instance):
             if mailData.send_to_all:
                 users = User.objects.all()
             else:
-                users = mailData.receiver
+                users = mailData.receiver.all()
 
             for u in users:
                 email = EmailMultiAlternatives(

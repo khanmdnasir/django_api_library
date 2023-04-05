@@ -102,7 +102,8 @@ class SubMenuApi(APIView):
     permission_classes = [IsAuthenticated]
     def get(self,request):
         try:
-            menu = Menu.objects.get(id=request.data['menu_id'])
+            data = self.request.query_params
+            menu = Menu.objects.get(id=data['menu'])
             instance=SubMenu.objects.filter(menu=menu).order_by('serial')   
             serializer=SubMenuSerializer(instance, many=True)            
         except Exception as e:

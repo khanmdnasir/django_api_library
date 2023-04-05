@@ -137,5 +137,5 @@ def notification_handler_delete(sender, instance, **kwargs):
 
 
 class UserNotificationRead(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    user = models.OneToOneField(User,on_delete=models.CASCADE)
     total_notification = models.PositiveIntegerField(default=0)

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .tasks import db_backup_task
 from .models import DbBackupModel
 from .serializers import DBBackupSerializer
+from django.core import management
 # Create your views here.
 
 class DbBackupViewSet(viewsets.ModelViewSet):
@@ -59,6 +60,19 @@ class DbBackupApi(APIView):
     def post(self,request):
         try:
             db_backup_task()
+            
+        except Exception as e:
+            print(e)
+            return Response({"success": False,"error": str(e) })
+        else:
+            
+            return Response({"success": True})
+        
+class DbRestoreApi(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self,request):
+        try:
+            management.call_command('dbrestore')
             
         except Exception as e:
             print(e)

@@ -8,7 +8,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
+        print(self.room_group_name)
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -16,6 +16,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def send_notification(self, event):
+        print('send notification')
         message = json.loads(event['message'])
         
         # Send message to WebSocket

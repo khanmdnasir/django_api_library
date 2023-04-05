@@ -14,7 +14,7 @@ class CurrencyModel(models.Model):
     
     
 class PaymentGatewayModel(models.Model):
-    name = models.CharField(max_length=255,unique=True)
+    name = models.CharField(max_length=255,lowercase=True,unique=True)
     currency = models.ForeignKey(CurrencyModel,on_delete=models.CASCADE)
     api_key = models.CharField(max_length=255)
     access_key = models.CharField(max_length=255)

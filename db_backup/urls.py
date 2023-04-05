@@ -9,5 +9,6 @@ router.register('db_backup_schedule', DbBackupViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('backup_db/',DbBackupApi.as_view()),
+    path('restore_db/',DbRestoreApi.as_view()),
 
 ]
